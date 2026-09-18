@@ -1,0 +1,52 @@
+id: xpl-backup-files
+info:
+  name: "Backup & Source File Exposure"
+  author: imtaqin
+  severity: high
+  description: |
+    Common backup/artifact filenames left in web-root — often contain
+    source code, credentials, or database dumps.
+  tags:
+    - exposure
+    - backup
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/backup.zip"
+      - "{{BaseURL}}/backup.tar.gz"
+      - "{{BaseURL}}/backup.sql"
+      - "{{BaseURL}}/db.sql"
+      - "{{BaseURL}}/dump.sql"
+      - "{{BaseURL}}/site.zip"
+      - "{{BaseURL}}/www.zip"
+      - "{{BaseURL}}/public_html.zip"
+      - "{{BaseURL}}/.bash_history"
+      - "{{BaseURL}}/.DS_Store"
+    # ALL conditions must be true — kill false positives from default 404 pages.
+    matchers-condition: and
+    matchers:
+      - type: status
+        status: [200]
+      - type: dsl
+        dsl:
+          - "size > 512"
+        name: real-content
+      # Must NOT be a standard HTML error page
+      - type: word
+        part: body
+        words:
+          - "<!DOCTYPE html"
+          - "<html"
+          - "Not Found"
+          - "404 Not Found"
+          - "Forbidden"
+          - "Error"
+        condition: or
+        negative: true
+      # Must NOT be served as HTML (backup files are octet-stream, zip, sql, etc)
+      - type: regex
+        part: header
+        regex:
+          - "(?i)content-type:\\s*text/html"
+        negative: true

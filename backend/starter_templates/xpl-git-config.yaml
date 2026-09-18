@@ -1,0 +1,50 @@
+id: xpl-git-config
+info:
+  name: ".git Directory Exposure"
+  author: imtaqin
+  severity: high
+  description: |
+    Exposed .git/config or .git/HEAD — the entire git repository
+    (with history + potentially secrets) can be dumped.
+  tags:
+    - exposure
+    - git
+  reference:
+    - https://github.com/internetwache/GitTools
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/.git/config"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status: [200]
+      # exact signature of a git config file
+      - type: word
+        part: body
+        words:
+          - "[core]"
+          - "repositoryformatversion"
+        condition: and
+      - type: regex
+        part: header
+        regex:
+          - "(?i)content-type:\\s*text/html"
+        negative: true
+
+  - method: GET
+    path:
+      - "{{BaseURL}}/.git/HEAD"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status: [200]
+      # HEAD file is short + starts with "ref:" or is a 40-char hex hash
+      - type: regex
+        part: body
+        regex:
+          - "^(ref: refs/heads/|[a-f0-9]{40})"
+      - type: dsl
+        dsl:
+          - "size < 200"

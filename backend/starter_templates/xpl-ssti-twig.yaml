@@ -1,0 +1,35 @@
+id: xpl-ssti-twig
+info:
+  name: "Server-Side Template Injection (Twig/PHP)"
+  author: imtaqin
+  severity: critical
+  description: |
+    Twig SSTI via upper() filter on a unique marker. Confirms only when
+    the unique uppercase value is reflected AND the raw {{ }} payload
+    is NOT echoed back.
+  tags:
+    - ssti
+    - rce
+    - php
+    - twig
+
+http:
+  - method: POST
+    path:
+      - "{{BaseURL}}/"
+    headers:
+      Content-Type: application/x-www-form-urlencoded
+    body: "name=xplZZZ{{'xplmarker'|upper}}ssti"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status: [200, 201]
+      - type: word
+        part: body
+        words:
+          - "xplZZZXPLMARKERssti"
+      - type: word
+        part: body
+        words:
+          - "{{'xplmarker'|upper}}"
+        negative: true
