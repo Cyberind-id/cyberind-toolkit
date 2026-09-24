@@ -76,7 +76,7 @@ pub struct SourceStat {
 
 fn build_client() -> reqwest::Client {
     reqwest::Client::builder()
-        .timeout(Duration::from_secs(25))
+        .timeout(Duration::from_secs(10))
         .user_agent("Mozilla/5.0 (PocketPentester/0.1)")
         .build()
         .unwrap_or_else(|_| reqwest::Client::new())
@@ -409,9 +409,13 @@ pub async fn subdomain_enum(
     let resolver = Arc::new(resolver());
     let keys = req.api_keys.clone().unwrap_or_default();
 
-    let enabled: Vec<String> = req.sources.clone()
-        .filter(|v| !v.is_empty())
-        .unwrap_or_else(|| FREE_SOURCES.iter().map(|s| s.to_string()).collect());
+    // Treat an omitted/empty source selection as the normal free-source mode.
+    // This prevents an empty persisted UI selection from silently disabling all
+    // passive sources after a browser reload.
+    let enabled: Vec<String> = match req.sources.clone() {
+        Some(v) if !v.is_empty() => v,
+        _ => FREE_SOURCES.iter().map(|s| s.to_string()).collect(),
+    };
 
     let _ = app.emit("subenum:status", format!("running {} source(s) in parallel", enabled.len()));
 
