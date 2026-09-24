@@ -7,7 +7,10 @@ export async function invoke<T = any>(command: string, args: any = {}): Promise<
     body: JSON.stringify(args ?? {})
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || `API ${res.status}`);
+  if (!res.ok) {
+    const detail = typeof data?.error === "string" ? data.error : JSON.stringify(data);
+    throw new Error(detail ? `API ${res.status}: ${detail}` : `API ${res.status}`);
+  }
   return data as T;
 }
 
