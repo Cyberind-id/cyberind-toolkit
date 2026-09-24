@@ -6,6 +6,23 @@ use serde_json::{json, Value};
 use tower_http::cors::CorsLayer;
 use compat::AppHandle;
 
+macro_rules! call { ($f:path, $app:expr, $args:expr, $key:literal) => {{
+    let v = $args.get($key).cloned().unwrap_or($args.clone());
+    match serde_json::from_value(v) { Ok(req) => $f($app, req).await.map(|v| json!(v)), Err(e) => Err(e.to_string()) }
+}} }
+macro_rules! call_plain { ($f:path, $args:expr, $key:literal) => {{
+    match $args.get($key).cloned().ok_or("missing argument".to_string()).and_then(|v| serde_json::from_value(v).map_err(|e| e.to_string())) {
+        Ok(v) => $f(v).await.map(|v| json!(v)),
+        Err(e) => Err(e),
+    }
+}} }
+macro_rules! call_arg_app { ($f:path, $app:expr, $args:expr, $key:literal) => {{
+    match $args.get($key).cloned().ok_or("missing argument".to_string()).and_then(|v| serde_json::from_value(v).map_err(|e| e.to_string())) { Ok(v) => $f($app, v).await.map(|v| json!(v)), Err(e) => Err(e) }
+}} }
+macro_rules! call_arg { ($f:path, $args:expr, $key:literal) => {{
+    match $args.get($key).cloned().ok_or("missing argument".to_string()).and_then(|v| serde_json::from_value(v).map_err(|e| e.to_string())) { Ok(v) => $f(v).await.map(|v| json!(v)), Err(e) => Err(e) }
+}} }
+
 async fn invoke(Path(cmd): Path<String>, Json(args): Json<Value>) -> impl IntoResponse {
     let app = AppHandle::default();
     let result: Result<Value, String> = match cmd.as_str() {
@@ -64,24 +81,6 @@ async fn invoke(Path(cmd): Path<String>, Json(args): Json<Value>) -> impl IntoRe
     match result { Ok(v) => (StatusCode::OK, Json(v)), Err(e) => (StatusCode::BAD_REQUEST, Json(json!({"error": e}))) }
 }
 
-macro_rules! call { ($f:path, $app:expr, $args:expr, $key:literal) => {{
-    let v = $args.get($key).cloned().unwrap_or($args.clone());
-    match serde_json::from_value(v) { Ok(req) => $f($app, req).await.map(|v| json!(v)), Err(e) => Err(e.to_string()) }
-}} }
-macro_rules! call_plain { ($f:path, $args:expr, $key:literal) => {{
-    match $args.get($key).cloned().ok_or("missing argument".to_string()).and_then(|v| serde_json::from_value(v).map_err(|e| e.to_string())) {
-        Ok(v) => $f(v).await.map(|v| json!(v)),
-        Err(e) => Err(e),
-    }
-}} }
-
-macro_rules! call_arg_app { ($f:path, $app:expr, $args:expr, $key:literal) => {{
-    match $args.get($key).cloned().ok_or("missing argument".to_string()).and_then(|v| serde_json::from_value(v).map_err(|e| e.to_string())) { Ok(v) => $f($app, v).await.map(|v| json!(v)), Err(e) => Err(e) }
-}} }
-macro_rules! call_arg { ($f:path, $args:expr, $key:literal) => {{
-    match $args.get($key).cloned().ok_or("missing argument".to_string()).and_then(|v| serde_json::from_value(v).map_err(|e| e.to_string())) { Ok(v) => $f(v).await.map(|v| json!(v)), Err(e) => Err(e) }
-}} }
-
 async fn health() -> impl IntoResponse { Json(json!({"ok":true,"name":"Cyberind Toolkit","backend":"rust"})) }
 
 #[tokio::main]
@@ -93,9 +92,7 @@ async fn main() {
         }
         _ => CorsLayer::permissive(),
     };
-
-    let app = Router::new().route("/health", get(health)).route("/api/invoke/:cmd", post(invoke))
-        .layer(cors);
+    let app = Router::new().route("/health", get(health)).route("/api/invoke/:cmd", post(invoke)).layer(cors);
     let host = std::env::var("BIND_HOST").unwrap_or_else(|_| "0.0.0.0".into());
     let port = std::env::var("PORT").ok().and_then(|v| v.parse::<u16>().ok()).unwrap_or(8080);
     let addr = format!("{host}:{port}");
