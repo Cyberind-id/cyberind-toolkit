@@ -1,0 +1,33 @@
+id: xpl-cors-misconfig
+info:
+  name: "CORS Misconfiguration (Origin Reflection)"
+  author: imtaqin
+  severity: medium
+  description: |
+    The server reflects an attacker-controlled Origin header and
+    also sets Access-Control-Allow-Credentials:true — a classic
+    account-takeover primitive.
+  tags:
+    - cors
+    - misconfig
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/"
+      - "{{BaseURL}}/api/user"
+      - "{{BaseURL}}/api/me"
+    headers:
+      Origin: "https://evil.example"
+    matchers-condition: and
+    matchers:
+      - type: regex
+        part: header
+        regex:
+          - "(?i)access-control-allow-origin:\\s*https://evil\\.example"
+        name: origin-reflected
+      - type: regex
+        part: header
+        regex:
+          - "(?i)access-control-allow-credentials:\\s*true"
+        name: credentials-enabled

@@ -1,0 +1,43 @@
+id: xpl-ssti-jinja2
+info:
+  name: "Server-Side Template Injection (Jinja2/Flask)"
+  author: imtaqin
+  severity: critical
+  description: |
+    Detects Jinja2 SSTI by injecting a math expression with an unusual
+    product (999 * 777 = 776223) that's unlikely to appear naturally.
+    Confirms only when the exact computed value is reflected AND the
+    raw payload with {{ }} is NOT echoed back verbatim.
+  tags:
+    - ssti
+    - rce
+    - python
+    - jinja2
+
+http:
+  # Payload is literal `xplZZZ{{999*777}}ssti` — the engine's expand() leaves
+  # {{999*777}} alone since it's not a known variable name. If the target has
+  # Jinja2 SSTI on that parameter, the server renders it to `xplZZZ776223ssti`.
+  - method: GET
+    path:
+      - "{{BaseURL}}/?name=xplZZZ{{999*777}}ssti"
+      - "{{BaseURL}}/?q=xplZZZ{{999*777}}ssti"
+      - "{{BaseURL}}/search?q=xplZZZ{{999*777}}ssti"
+      - "{{BaseURL}}/hello/xplZZZ{{999*777}}ssti"
+    stop_at_first_match: true
+    matchers-condition: and
+    matchers:
+      # must be 2xx (not 400/404 - those show errors which may contain our payload)
+      - type: status
+        status: [200, 201, 204]
+      # computed value must appear — very specific string
+      - type: word
+        part: body
+        words:
+          - "xplZZZ776223ssti"
+      # raw payload must NOT be echoed verbatim (server evaluated it)
+      - type: word
+        part: body
+        words:
+          - "xplZZZ{{999*777}}ssti"
+        negative: true

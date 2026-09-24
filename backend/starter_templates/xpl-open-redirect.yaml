@@ -1,0 +1,29 @@
+id: xpl-open-redirect
+info:
+  name: "Open Redirect"
+  author: imtaqin
+  severity: medium
+  description: |
+    Redirect parameters that accept arbitrary external URLs, usable
+    for phishing + OAuth token theft.
+  tags:
+    - open-redirect
+    - phishing
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/redirect?url=https://evil.example/"
+      - "{{BaseURL}}/go?to=https://evil.example/"
+      - "{{BaseURL}}/out?dest=https://evil.example/"
+      - "{{BaseURL}}/login?next=https://evil.example/"
+    redirects: false
+    matchers-condition: and
+    matchers:
+      - type: status
+        status: [301, 302, 303, 307, 308]
+      - type: regex
+        part: header
+        regex:
+          - "(?i)^location:\\s*https?://evil\\.example"
+        name: redirect-to-evil

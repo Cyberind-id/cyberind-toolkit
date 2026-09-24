@@ -1,0 +1,43 @@
+id: xpl-phpinfo
+info:
+  name: "phpinfo() Exposure"
+  author: imtaqin
+  severity: medium
+  description: |
+    phpinfo pages reveal PHP version, loaded modules, environment
+    variables, and file-system paths.
+  tags:
+    - exposure
+    - php
+    - infoleak
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/phpinfo.php"
+      - "{{BaseURL}}/info.php"
+      - "{{BaseURL}}/test.php"
+      - "{{BaseURL}}/_profiler/phpinfo"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status: [200]
+      # must contain all 3 phpinfo signatures to be confident
+      - type: word
+        part: body
+        words:
+          - "PHP Version"
+          - "phpinfo()"
+          - "System"
+        condition: and
+      - type: word
+        part: body
+        words:
+          - "<title>phpinfo()</title>"
+    extractors:
+      - type: regex
+        part: body
+        regex:
+          - "PHP Version </td><td class=\"v\">([0-9.]+)"
+        group: 1
+        name: php-version

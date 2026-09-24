@@ -1,0 +1,38 @@
+id: xpl-env-leak
+info:
+  name: ".env File Exposure"
+  author: imtaqin
+  severity: high
+  description: |
+    Detects exposed .env files containing credentials, API keys,
+    or database passwords.
+  tags:
+    - exposure
+    - config
+    - credential-leak
+  reference:
+    - https://owasp.org/www-community/vulnerabilities/Information_exposure_through_files
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/.env"
+      - "{{BaseURL}}/.env.local"
+      - "{{BaseURL}}/.env.production"
+      - "{{BaseURL}}/.env.backup"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status: [200]
+      # must contain actual env-style KEY=VALUE pairs with sensitive names
+      - type: regex
+        part: body
+        regex:
+          - "(?im)^(APP_KEY|DB_PASSWORD|AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|SECRET_KEY|API_KEY|PRIVATE_KEY|STRIPE_SECRET|JWT_SECRET)="
+        name: env-secret
+      # must NOT be served as HTML (default 404 page)
+      - type: regex
+        part: header
+        regex:
+          - "(?i)content-type:\\s*text/html"
+        negative: true

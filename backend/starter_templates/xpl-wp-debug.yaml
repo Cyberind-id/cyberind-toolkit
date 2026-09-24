@@ -1,0 +1,37 @@
+id: xpl-wp-debug
+info:
+  name: "WordPress debug.log Exposure"
+  author: imtaqin
+  severity: medium
+  tags:
+    - wordpress
+    - exposure
+    - debug
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/wp-content/debug.log"
+      - "{{BaseURL}}/wp-content/uploads/debug.log"
+    matchers-condition: and
+    matchers:
+      - type: status
+        status: [200]
+      # PHP log entries have specific format: [date time UTC] line
+      - type: regex
+        part: body
+        regex:
+          - "^\\[\\d{2}-\\w{3}-\\d{4}"
+      - type: word
+        part: body
+        words:
+          - "PHP Notice"
+          - "PHP Warning"
+          - "PHP Fatal error"
+          - "WordPress database error"
+        condition: or
+      - type: regex
+        part: header
+        regex:
+          - "(?i)content-type:\\s*text/html"
+        negative: true
