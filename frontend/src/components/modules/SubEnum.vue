@@ -58,7 +58,13 @@ async function run() {
   progress.value = { done: 0, total: 0 };
 
   const words = wordlist.value.split(/[,\n\s]+/).map((w) => w.trim()).filter(Boolean);
-  const enabled = Array.from(enabledSources.value);
+  // If localStorage contains an empty selection (for example from an older
+  // version), fall back to the free sources instead of sending zero sources.
+  const enabled = enabledSources.value.size
+    ? Array.from(enabledSources.value)
+    : sources.value.free.length
+      ? Array.from(sources.value.free)
+      : [];
   log.info(`domain: ${domain.value}`);
   log.info(`sources: ${enabled.join(",")} (${enabled.length}) | brute: ${words.length} words`);
 
