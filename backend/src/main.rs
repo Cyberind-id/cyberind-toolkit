@@ -92,7 +92,7 @@ async fn main() {
         }
         _ => CorsLayer::permissive(),
     };
-    let app = Router::new().route("/health", get(health)).route("/api/invoke/:cmd", post(invoke)).layer(cors);
+    let app = Router::new().route("/health", get(health)).route("/api/invoke/{cmd}", post(invoke)).layer(cors);
     let host = std::env::var("BIND_HOST").unwrap_or_else(|_| "0.0.0.0".into());
     let port = std::env::var("PORT").ok().and_then(|v| v.parse::<u16>().ok()).unwrap_or(8080);
     let addr = format!("{host}:{port}");
