@@ -24,800 +24,146 @@ import HashTools from "./components/modules/HashTools.vue";
 import DomainGrabber from "./components/modules/DomainGrabber.vue";
 import SplashScreen from "./components/SplashScreen.vue";
 
-type ToolId = "ports" | "subs" | "httpx" | "takeguard" | "sqltrace" | "xenxss" | "tokenscope" | "vulnforge" | "autopwn" | "lanmap" | "reqlab" | "dirfuzz" | "payloadgen" | "adminfinder" | "formbrute" | "dnscope" | "ssl" | "banner" | "codeshift" | "hash" | "domgrab";
+type ToolId = "ports"|"subs"|"httpx"|"takeguard"|"sqltrace"|"xenxss"|"tokenscope"|"vulnforge"|"autopwn"|"lanmap"|"reqlab"|"dirfuzz"|"payloadgen"|"adminfinder"|"formbrute"|"dnscope"|"ssl"|"banner"|"codeshift"|"hash"|"domgrab";
+type Cat = "recon"|"exploit"|"utility"|"network"|"manual";
+interface Tool { id:ToolId; code:string; name:string; tagline:string; desc:string; cat:Cat; severity:string }
 
-interface Tool {
-  id: ToolId;
-  code: string;
-  name: string;
-  tagline: string;
-  desc: string;
-  cat: "recon" | "exploit" | "utility" | "wifi" | "manual";
-  severity: "info" | "low" | "medium" | "high" | "critical";
-}
+const tools:Tool[]=[
+{id:"ports",code:"01",name:"PortRay",tagline:"tcp connect",desc:"Async port discovery and service hints.",cat:"recon",severity:"info"},
+{id:"subs",code:"02",name:"SubFindr",tagline:"passive + brute",desc:"Certificate sources and wordlist enumeration.",cat:"recon",severity:"info"},
+{id:"httpx",code:"03",name:"WebProbeX",tagline:"status + tech",desc:"Live host probing and technology hints.",cat:"recon",severity:"info"},
+{id:"takeguard",code:"04",name:"TakeGuard",tagline:"CNAME audit",desc:"Detect common dangling service configurations.",cat:"exploit",severity:"high"},
+{id:"sqltrace",code:"05",name:"SQLTrace",tagline:"error/bool/time",desc:"SQL injection testing for authorized targets.",cat:"exploit",severity:"critical"},
+{id:"xenxss",code:"06",name:"XenXSS",tagline:"context-aware",desc:"Reflection and context checks for XSS.",cat:"exploit",severity:"high"},
+{id:"tokenscope",code:"07",name:"TokenScope",tagline:"jwt inspector",desc:"JWT decoding and security inspection.",cat:"exploit",severity:"critical"},
+{id:"vulnforge",code:"08",name:"VulnForge",tagline:"template engine",desc:"Template-driven vulnerability testing.",cat:"exploit",severity:"critical"},
+{id:"autopwn",code:"09",name:"ReconFlow",tagline:"full chain",desc:"Automated reconnaissance workflow.",cat:"exploit",severity:"critical"},
+{id:"lanmap",code:"10",name:"NetGrid",tagline:"local network",desc:"Network discovery and device mapping.",cat:"network",severity:"info"},
+{id:"reqlab",code:"11",name:"ReqLab",tagline:"request lab",desc:"Craft, send, inspect and replay HTTP.",cat:"manual",severity:"info"},
+{id:"dirfuzz",code:"12",name:"DirTrace",tagline:"content discovery",desc:"Directory and endpoint discovery.",cat:"exploit",severity:"medium"},
+{id:"payloadgen",code:"13",name:"PayloadForge",tagline:"payload builder",desc:"Payload generation utilities for lab use.",cat:"utility",severity:"info"},
+{id:"adminfinder",code:"14",name:"PanelSeek",tagline:"panel discovery",desc:"Discover common administration paths.",cat:"exploit",severity:"medium"},
+{id:"formbrute",code:"15",name:"AuthProbe",tagline:"login testing",desc:"Credential testing for authorized forms.",cat:"exploit",severity:"high"},
+{id:"dnscope",code:"16",name:"DNScope",tagline:"record lookup",desc:"DNS records, DNSSEC and diagnostics.",cat:"network",severity:"info"},
+{id:"ssl",code:"17",name:"CertScope",tagline:"tls inspector",desc:"Certificate chain and TLS inspection.",cat:"network",severity:"info"},
+{id:"banner",code:"18",name:"ServiceEye",tagline:"service fingerprint",desc:"TCP service and banner inspection.",cat:"network",severity:"info"},
+{id:"codeshift",code:"19",name:"CodeShift",tagline:"chain transforms",desc:"Encoding and decoding utility pipelines.",cat:"utility",severity:"info"},
+{id:"hash",code:"20",name:"HashLens",tagline:"id + calc",desc:"Hash identification and calculation.",cat:"utility",severity:"info"},
+{id:"domgrab",code:"21",name:"DomainTrace",tagline:"bulk harvest",desc:"Domain collection for authorized research.",cat:"recon",severity:"info"}];
 
-const tools: Tool[] = [
-  { id: "ports",    code: "01", name: "portray",  tagline: "tcp connect",       desc: "async port discovery, service hints",                cat: "recon",   severity: "info" },
-  { id: "subs",     code: "02", name: "subfindr",  tagline: "passive + brute",   desc: "crt.sh enum, wordlist bruteforce",                   cat: "recon",   severity: "info" },
-  { id: "httpx",    code: "03", name: "webprobex", tagline: "status + tech",     desc: "fingerprint live hosts, tech stack",                 cat: "recon",   severity: "info" },
-  { id: "takeguard", code: "04", name: "takeguard",   tagline: "CNAME hijack",      desc: "S3/GH/Heroku/Azure/Vercel/+15 more",                 cat: "exploit", severity: "high" },
-  { id: "sqltrace",     code: "05", name: "sqltrace",       tagline: "error/bool/time",   desc: "auto-detect injection, 6 DBMS",                      cat: "exploit", severity: "critical" },
-  { id: "xenxss",      code: "06", name: "xenxss",        tagline: "context-aware",     desc: "canary reflection, HTML/attr/JS payloads",           cat: "exploit", severity: "high" },
-  { id: "tokenscope",      code: "07", name: "tokenscope",        tagline: "alg:none + brute",  desc: "decode + HMAC crack + forgery",                      cat: "exploit", severity: "critical" },
-  { id: "vulnforge", code: "08", name: "vulnforge",   tagline: "template engine",   desc: "YAML-driven RCE/LFI/SSRF/SSTI, bring your own template", cat: "exploit", severity: "critical" },
-  { id: "autopwn",  code: "09", name: "reconflow",   tagline: "full chain",        desc: "domain → subs → probe → exploit, one-button pipeline", cat: "exploit", severity: "critical" },
-  { id: "lanmap",   code: "10", name: "netgrid",    tagline: "local network",     desc: "discover devices on WiFi: TCP sweep + mDNS + SSDP",  cat: "wifi",    severity: "info" },
-  { id: "reqlab", code: "11", name: "reqlab",   tagline: "burp-lite",         desc: "manual HTTP: craft, send, inspect, replay, curl export", cat: "manual",  severity: "info" },
-  { id: "dirfuzz",  code: "12", name: "dirtrace",   tagline: "content discovery", desc: "wordlist + ext bruteforce, recursive, size/status filter", cat: "exploit", severity: "medium" },
-  { id: "payloadgen", code: "13", name: "payloadforge", tagline: "shells + codeshifts", desc: "reverse/bind shells 15+ langs, webshells, msfvenom, codeshifts", cat: "utility", severity: "info" },
-  { id: "adminfinder", code: "14", name: "panelseek", tagline: "panel discovery", desc: "320+ admin paths, CMS/platform fingerprint, login form detect", cat: "exploit", severity: "medium" },
-  { id: "formbrute",   code: "15", name: "authprobe",   tagline: "login bruteforce", desc: "POST/GET credential attack, regex match, CSRF handling", cat: "exploit", severity: "high" },
-  { id: "dnscope",         code: "16", name: "dnscope",           tagline: "record lookup",    desc: "A/AAAA/MX/TXT/NS/CNAME/SOA/CAA + DNSSEC + AXFR",     cat: "wifi",    severity: "info" },
-  { id: "ssl",         code: "17", name: "certscope",      tagline: "tls inspector",    desc: "cert chain, SANs, expiry, signature algo, weak version", cat: "wifi",    severity: "info" },
-  { id: "banner",      code: "18", name: "serviceeye",   tagline: "service fingerprint", desc: "TCP banner + SSH/SMTP/FTP/HTTP/Redis/MySQL recognize", cat: "wifi", severity: "info" },
-  { id: "codeshift",     code: "19", name: "codeshift",       tagline: "chain transforms", desc: "b64/url/hex/html/rot13/morse/tokenscope — pipeline ops",    cat: "utility", severity: "info" },
-  { id: "hash",        code: "20", name: "hashlens",    tagline: "id + calc",        desc: "identify 28+ hash types, compute MD5/SHA/CRC32",    cat: "utility", severity: "info" },
-  { id: "domgrab",     code: "21", name: "domaintrace",   tagline: "bulk TLD harvest", desc: "grab domains per TLD from crt.sh/urlscan/wayback + IANA catalog", cat: "recon", severity: "info" },
-];
+const groups:{id:Cat;label:string;desc:string;mark:string}[]=[
+{id:"recon",label:"Reconnaissance",desc:"passive + active discovery",mark:"◉"},
+{id:"exploit",label:"Security Testing",desc:"vulnerability assessment",mark:"⌁"},
+{id:"network",label:"Network",desc:"network & protocol diagnostics",mark:"≋"},
+{id:"manual",label:"Manual",desc:"request analysis workspace",mark:"✎"},
+{id:"utility",label:"Utilities",desc:"helpers & transformations",mark:"⚙"}];
 
-const active = ref<ToolId | null>(null);
-const banner = ref<string>("");
-const clock = ref<string>("");
-const showSplash = ref(true);
-
-function tick() {
-  const d = new Date();
-  clock.value = d.toTimeString().slice(0, 8);
-}
-
-onMounted(async () => {
-  try { banner.value = await invoke<string>("banner"); }
-  catch { banner.value = "CYBERIND TOOLKIT"; }
-  tick();
-  setInterval(tick, 1000);
-});
-
-const activeTool = computed(() => tools.find((t) => t.id === active.value) ?? null);
-
-interface Group {
-  id: Tool["cat"];
-  label: string;
-  desc: string;
-  mark: string;
-}
-
-const groups: Group[] = [
-  { id: "recon",   label: "recon",         desc: "passive + active reconnaissance", mark: "◉" },
-  { id: "exploit", label: "exploitation",  desc: "attack vectors & vulnerability",  mark: "⚔" },
-  { id: "manual",  label: "manual",        desc: "hand-crafted request tooling",    mark: "✎" },
-  { id: "wifi",    label: "network",       desc: "local / wifi reconnaissance",     mark: "≋" },
-  { id: "utility", label: "utility",       desc: "helpers & payload generation",    mark: "⚙" },
-];
-
-const grouped = computed(() =>
-  groups.map((g) => ({ ...g, tools: tools.filter((t) => t.cat === g.id) }))
-        .filter((g) => g.tools.length > 0)
-);
-
-function back() { active.value = null; }
-function open(id: ToolId) { active.value = id; }
+const active=ref<ToolId|null>(null), banner=ref(""), clock=ref(""), showSplash=ref(true);
+const activeTool=computed(()=>tools.find(t=>t.id===active.value)??null);
+const grouped=computed(()=>groups.map(g=>({...g,tools:tools.filter(t=>t.cat===g.id)})).filter(g=>g.tools.length));
+function open(id:ToolId){active.value=id} function back(){active.value=null}
+function tick(){clock.value=new Date().toTimeString().slice(0,8)}
+onMounted(async()=>{try{banner.value=await invoke<string>("banner")}catch{banner.value="CYBERIND TOOLKIT"} tick();setInterval(tick,1000)})
 </script>
 
 <template>
-  <SplashScreen v-if="showSplash" @done="showSplash = false" />
-  <div class="shell" v-show="!showSplash">
-    <!-- ============ CYBERIND HEADER ============ -->
-    <header class="site-header">
-      <div class="nav-shell">
-        <button v-if="activeTool" class="mobile-back" @click="back" aria-label="Kembali">←</button>
-        <button class="brand" @click="back" aria-label="Cyberind Toolkit">
-          <span class="brand-mark">&lt;/&gt;</span>
-          <span class="brand-text">
-            <strong>CYBERIND</strong>
-            <small>TOOLKIT</small>
-          </span>
-        </button>
+<SplashScreen v-if="showSplash" @done="showSplash=false"/>
+<div v-show="!showSplash" class="site">
+  <div class="progress"></div>
+  <header class="header">
+    <nav class="nav">
+      <button class="brand" @click="back">
+        <img src="https://www.cyberind.my.id/assets/images/logoo.png" alt="Cyberind.id">
+        <span>cyberind<span class="accent">id</span></span>
+      </button>
+      <div class="navlinks">
+        <button :class="{on:!activeTool}" @click="back">Tools</button>
+        <a href="https://cyberind.my.id" target="_blank">Cyberind.id</a>
+        <span class="live"><i></i> SYSTEM ONLINE</span>
+      </div>
+      <div class="navmeta"><span>v0.1.0</span><span>{{clock}}</span></div>
+    </nav>
+    <div class="crumb"><span>cyberind</span><b>/</b><span>{{activeTool?.name||"toolkit"}}</span><i>_</i></div>
+  </header>
 
-        <nav class="site-nav" aria-label="Navigasi">
-          <button :class="{ active: !activeTool }" @click="back">Tools</button>
-          <a href="https://cyberind.my.id" target="_blank" rel="noreferrer">Cyberind.id</a>
-          <span class="nav-divider"></span>
-          <span class="nav-status"><i></i> SYSTEM ONLINE</span>
-        </nav>
-
-        <div class="nav-actions">
-          <span class="version">v0.1.0</span>
-          <span class="clock">{{ clock }}</span>
+  <main>
+    <section v-if="!activeTool" class="home">
+      <div class="hero reveal">
+        <div>
+          <div class="eyebrow"><i></i> KOMUNITAS INDEPENDEN SEJAK 2018</div>
+          <h1>CYBERIND <span>TOOLKIT</span></h1>
+          <p>Security tools untuk reconnaissance, analisis, diagnostik, dan pengujian keamanan dalam satu workspace.</p>
+          <div class="hero-actions">
+            <button class="primary shimmer" @click="open('ports')">Jelajahi Tools <b>→</b></button>
+            <a class="secondary" href="https://cyberind.my.id" target="_blank">cyberind.my.id ↗</a>
+          </div>
+        </div>
+        <div class="terminal terminal-glass">
+          <div class="termbar"><span></span><span></span><span></span><b>CYBERIND SYSTEM</b></div>
+          <div class="termbody">
+            <div>$ ./cyberind --launch</div><div class="ok">[OK] CONNECTED</div><div class="ok">[OK] SECURE</div><div class="ok">[OK] LOADED</div><div class="white">ACCESS GRANTED</div><div class="muted">> cyberind.my.id</div><em></em>
+          </div>
         </div>
       </div>
 
-      <div class="commandbar">
-        <span class="command-user">cyberind</span>
-        <span class="command-sep">/</span>
-        <span class="command-path">{{ activeTool ? activeTool.name : 'toolkit' }}</span>
-        <span class="command-cursor">_</span>
+      <div class="intro glass-card reveal">
+        <div><small>01 / TOOLKIT</small><h2>Explore. Learn. Share. Build. Secure.</h2></div>
+        <p>Cyberind Toolkit adalah workspace web untuk membantu riset keamanan yang dilakukan secara sah dan bertanggung jawab.</p>
       </div>
-    </header>
 
-    <!-- ============ MAIN ============ -->
-    <main class="main">
-      <!-- ARSENAL / HOME -->
-      <div v-show="!activeTool" class="arsenal">
-        <section class="tool-hero">
-          <div class="hero-copy">
-            <span class="eyebrow"><i></i> CYBERIND TOOLKIT</span>
-            <h1>Security tools, <span>built for the web.</span></h1>
-            <p>Reconnaissance, analysis, diagnostics, and security utilities in one clean workspace.</p>
-          </div>
-          <div class="hero-terminal">
-            <span>$ toolkit --status</span>
-            <strong>READY</strong>
-            <small>21 modules available</small>
+      <div class="stats glass-card">
+        <strong>{{tools.length}} <small>MODULES</small></strong>
+        <span v-for="g in grouped" :key="g.id"><b>{{g.mark}}</b> {{g.tools.length}} {{g.label}}</span>
+      </div>
+
+      <div class="groups">
+        <section v-for="g in grouped" :key="g.id" class="group reveal">
+          <div class="ghead"><span>{{g.mark}}</span><strong>{{g.label}}</strong><small>// {{g.desc}}</small><i>[{{g.tools.length}}]</i><hr/></div>
+          <div class="grid">
+            <button v-for="t in g.tools" :key="t.id" class="card glass-card glass-touch card-h" @click="open(t.id)">
+              <div class="ctop"><span>[{{t.code}}]</span><b>{{g.mark}}</b></div>
+              <h3>{{t.name}}</h3><small>{{t.tagline}}</small><p>{{t.desc}}</p>
+              <div class="cfoot"><em :class="'s-'+t.severity">{{t.severity}}</em><b>↗</b></div>
+            </button>
           </div>
         </section>
-
-        <div class="arsenal-stats">
-          <span class="stats-total">{{ tools.length }} modules</span>
-          <span v-for="g in grouped" :key="g.id" class="stats-grp" :class="`cat-${g.id}`">
-            <span class="stats-mark">{{ g.mark }}</span>
-            <span>{{ g.tools.length }} {{ g.label }}</span>
-          </span>
-        </div>
-
-        <div class="group-stack">
-          <section v-for="g in grouped" :key="g.id" class="group" :class="`cat-${g.id}`">
-            <header class="group-head">
-              <span class="grp-mark">{{ g.mark }}</span>
-              <span class="grp-label">{{ g.label }}</span>
-              <span class="grp-desc">// {{ g.desc }}</span>
-              <span class="grp-count">[{{ g.tools.length }}]</span>
-              <span class="grp-rule"></span>
-            </header>
-            <div class="grid">
-              <button
-                v-for="t in g.tools"
-                :key="t.id"
-                class="tile"
-                :class="[`cat-${t.cat}`, `sev-${t.severity}`]"
-                @click="open(t.id)"
-              >
-                <div class="tile-top">
-                  <span class="tile-code">[{{ t.code }}]</span>
-                  <span class="tile-mark">{{ g.mark }}</span>
-                </div>
-                <div class="tile-name">{{ t.name }}</div>
-                <div class="tile-tag">{{ t.tagline }}</div>
-                <div class="tile-desc">{{ t.desc }}</div>
-                <div class="tile-foot">
-                  <span class="sev" :class="`sev-${t.severity}`">{{ t.severity }}</span>
-                  <span class="tile-arrow">▶</span>
-                </div>
-              </button>
-            </div>
-          </section>
-        </div>
-
       </div>
+    </section>
 
-      <!-- ACTIVE TOOL -->
-      <div v-if="activeTool" class="tool">
-        <PortScan v-if="active === 'ports'" />
-        <SubEnum v-else-if="active === 'subs'" />
-        <HttpProbe v-else-if="active === 'httpx'" />
-        <Takeover v-else-if="active === 'takeguard'" />
-        <Sqli v-else-if="active === 'sqltrace'" />
-        <Xss v-else-if="active === 'xenxss'" />
-        <Jwt v-else-if="active === 'tokenscope'" />
-        <Xploiter v-else-if="active === 'vulnforge'" />
-        <AutoPwn v-else-if="active === 'autopwn'" />
-        <LanMap v-else-if="active === 'lanmap'" />
-        <Repeater v-else-if="active === 'reqlab'" />
-        <DirFuzz v-else-if="active === 'dirfuzz'" />
-        <PayloadGen v-else-if="active === 'payloadgen'" />
-        <AdminFinder v-else-if="active === 'adminfinder'" />
-        <FormBrute v-else-if="active === 'formbrute'" />
-        <DnsTools v-else-if="active === 'dnscope'" />
-        <SslScan v-else-if="active === 'ssl'" />
-        <Banner v-else-if="active === 'banner'" />
-        <Encoder v-else-if="active === 'codeshift'" />
-        <HashTools v-else-if="active === 'hash'" />
-        <DomainGrabber v-else-if="active === 'domgrab'" />
-      </div>
-    </main>
+    <section v-else class="toolview">
+      <button class="back" @click="back">← Kembali ke Toolkit</button>
+      <div class="tooltitle glass-card"><small>CYBERIND / SECURITY TOOLS</small><h2>{{activeTool.name}}</h2><p>{{activeTool.desc}}</p></div>
+      <PortScan v-if="active==='ports'"/><SubEnum v-else-if="active==='subs'"/><HttpProbe v-else-if="active==='httpx'"/>
+      <Takeover v-else-if="active==='takeguard'"/><Sqli v-else-if="active==='sqltrace'"/><Xss v-else-if="active==='xenxss'"/>
+      <Jwt v-else-if="active==='tokenscope'"/><Xploiter v-else-if="active==='vulnforge'"/><AutoPwn v-else-if="active==='autopwn'"/>
+      <LanMap v-else-if="active==='lanmap'"/><Repeater v-else-if="active==='reqlab'"/><DirFuzz v-else-if="active==='dirfuzz'"/>
+      <PayloadGen v-else-if="active==='payloadgen'"/><AdminFinder v-else-if="active==='adminfinder'"/><FormBrute v-else-if="active==='formbrute'"/>
+      <DnsTools v-else-if="active==='dnscope'"/><SslScan v-else-if="active==='ssl'"/><Banner v-else-if="active==='banner'"/>
+      <Encoder v-else-if="active==='codeshift'"/><HashTools v-else-if="active==='hash'"/><DomainGrabber v-else-if="active==='domgrab'"/>
+    </section>
+  </main>
 
-    <!-- ============ FOOTER ============ -->
-    <footer class="site-footer">
-      <span>© Cyberind.id</span>
-      <span class="footer-dot">•</span>
-      <span>Independent security toolkit</span>
-      <span class="footer-spacer"></span>
-      <span>{{ banner }}</span>
-    </footer>
-  </div>
+  <footer><span>© {{new Date().getFullYear()}} Indonesian Cyber Team (Cyberind.id). Est. 2018.</span><span>{{banner||"Explore. Learn. Share. Build. Secure."}}</span></footer>
+</div>
 </template>
 
 <style scoped>
-.shell {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-}
-
-/* ============ HEADER ============ */
-.hdr {
-  flex-shrink: 0;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-elev);
-  position: relative;
-}
-.hdr::before {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 0;
-  width: 50%;
-  height: 1px;
-  background: linear-gradient(90deg, var(--alert), transparent);
-  opacity: 0.6;
-}
-.hdr-top {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 8px 12px 4px;
-  min-width: 0;
-}
-.hdr-back {
-  color: var(--alert);
-  border: 1px solid var(--alert);
-  padding: 3px 8px;
-  font-size: 11px;
-  letter-spacing: 0.05em;
-  transition: background 0.15s;
-  flex-shrink: 0;
-  height: fit-content;
-  margin-top: 4px;
-}
-.hdr-back:hover { background: var(--alert); color: #fff; }
-
-.banner-wrap {
-  flex: 1;
-  min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.banner-wrap::-webkit-scrollbar { display: none; }
-.banner-art {
-  color: var(--accent);
-  font-size: 9px;
-  line-height: 1.1;
-  font-weight: 700;
-  text-shadow: 0 0 10px rgba(255, 47, 74, 0.25), 0 0 2px rgba(255, 255, 255, 0.4);
-  margin: 0;
-  white-space: pre;
-  font-family: var(--mono);
-}
-
-.hdr-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 0 12px;
-  flex-wrap: wrap;
-}
-.tag {
-  font-size: 10px;
-  color: var(--fg-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  padding: 1px 6px;
-  border: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.tag-warn { color: var(--warn); border-color: var(--warn); }
-
-.hdr-spacer { flex: 1; min-width: 0; }
-
-.hdr-status {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 10px;
-  color: var(--alert);
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  flex-shrink: 0;
-}
-.pulse {
-  width: 6px; height: 6px;
-  background: var(--alert);
-  box-shadow: 0 0 8px var(--alert);
-  animation: pulse 1.5s ease-in-out infinite;
-}
-@keyframes pulse { 50% { opacity: 0.3; transform: scale(0.75); } }
-.hdr-clock {
-  font-size: 10px;
-  color: var(--fg-dim);
-  font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
-}
-
-.hdr-sub {
-  padding: 4px 12px 6px;
-  font-size: 11px;
-  display: flex;
-  gap: 2px;
-  flex-wrap: nowrap;
-  overflow: hidden;
-  white-space: nowrap;
-}
-.crumb-user { color: var(--alert); }
-.crumb-path { color: var(--info); overflow: hidden; text-overflow: ellipsis; }
-.crumb-cmd { color: var(--fg); margin-left: 4px; }
-.crumb-sep { color: var(--fg-ghost); }
-.crumb-cursor { color: var(--accent); animation: blink 1s steps(2) infinite; }
-@keyframes blink { 50% { opacity: 0; } }
-
-/* ============ MAIN ============ */
-.main {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* ARSENAL */
-.arsenal {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.arsenal-stats {
-  display: flex;
-  gap: 10px;
-  font-size: 11px;
-  color: var(--fg-dim);
-  padding: 6px 10px;
-  border: 1px solid var(--border);
-  background: var(--bg-panel);
-  flex-wrap: wrap;
-  align-items: center;
-}
-.stats-total {
-  color: var(--fg);
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-size: 10px;
-}
-.stats-grp {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 6px;
-  border: 1px solid var(--border-hot);
-  font-size: 10px;
-  letter-spacing: 0.05em;
-}
-.stats-mark { font-size: 11px; }
-.stats-grp.cat-recon { color: var(--info); }
-.stats-grp.cat-exploit { color: var(--alert); }
-.stats-grp.cat-wifi { color: var(--warn); }
-.stats-grp.cat-manual { color: var(--valid); }
-.stats-grp.cat-utility { color: var(--fg); }
-
-.group-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.group { display: flex; flex-direction: column; gap: 8px; }
-.group-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  padding: 2px 0;
-}
-.grp-mark { font-size: 14px; flex-shrink: 0; }
-.group.cat-recon .grp-mark { color: var(--info); }
-.group.cat-exploit .grp-mark { color: var(--alert); }
-.group.cat-wifi .grp-mark { color: var(--warn); }
-.group.cat-manual .grp-mark { color: var(--valid); }
-.group.cat-utility .grp-mark { color: var(--fg); }
-.grp-label {
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  font-size: 12px;
-  color: var(--fg);
-}
-.group.cat-recon .grp-label { color: var(--info); }
-.group.cat-exploit .grp-label { color: var(--alert); }
-.group.cat-wifi .grp-label { color: var(--warn); }
-.group.cat-manual .grp-label { color: var(--valid); }
-.grp-desc {
-  color: var(--fg-ghost);
-  font-size: 10px;
-  font-style: italic;
-}
-.grp-count {
-  color: var(--fg-dim);
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.1em;
-}
-.grp-rule {
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, var(--border-hot), transparent);
-  margin-left: 4px;
-}
-.group.cat-recon .grp-rule { background: linear-gradient(90deg, rgba(127, 179, 213, 0.3), transparent); }
-.group.cat-exploit .grp-rule { background: linear-gradient(90deg, rgba(255, 47, 74, 0.3), transparent); }
-.group.cat-wifi .grp-rule { background: linear-gradient(90deg, rgba(212, 165, 55, 0.3), transparent); }
-.group.cat-manual .grp-rule { background: linear-gradient(90deg, rgba(92, 217, 130, 0.3), transparent); }
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 8px;
-}
-
-.tile {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  text-align: left;
-  padding: 10px 12px;
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  color: var(--fg);
-  cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: border-color 0.15s, background 0.15s;
-  min-height: 130px;
-}
-.tile::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 2px; height: 100%;
-  background: var(--border-hot);
-  transition: background 0.15s;
-}
-.tile.cat-exploit::before { background: var(--alert); opacity: 0.5; }
-.tile.cat-recon::before { background: var(--info); opacity: 0.4; }
-.tile.cat-wifi::before { background: var(--warn); opacity: 0.5; }
-.tile.cat-manual::before { background: var(--valid); opacity: 0.5; }
-.tile.cat-utility::before { background: var(--fg-dim); opacity: 0.5; }
-.tile:hover {
-  border-color: var(--alert);
-  background: rgba(255, 47, 74, 0.04);
-}
-.tile:hover::before { opacity: 1; box-shadow: 0 0 10px currentColor; }
-.tile:active { transform: translateY(1px); }
-
-.tile-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.tile-code {
-  color: var(--fg-ghost);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-}
-.tile-mark { font-size: 12px; }
-.cat-exploit .tile-mark { color: var(--alert); }
-.cat-recon .tile-mark { color: var(--info); }
-.cat-wifi .tile-mark { color: var(--warn); }
-.cat-manual .tile-mark { color: var(--valid); }
-.cat-utility .tile-mark { color: var(--fg-dim); }
-
-.tile-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--fg);
-  letter-spacing: -0.01em;
-  word-break: break-word;
-}
-.tile-tag {
-  font-size: 10px;
-  color: var(--fg-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  word-break: break-word;
-}
-.tile-desc {
-  font-size: 11px;
-  color: var(--fg-dim);
-  line-height: 1.4;
-  flex: 1;
-  word-break: break-word;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-.tile-foot {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 2px;
-}
-.tile-arrow {
-  color: var(--fg-ghost);
-  font-size: 10px;
-  transition: color 0.15s, transform 0.15s;
-}
-.tile:hover .tile-arrow { color: var(--alert); transform: translateX(2px); }
-
-.disclaimer {
-  margin-top: auto;
-  padding: 6px 10px;
-  font-size: 10px;
-  color: var(--warn);
-  border: 1px solid rgba(212, 165, 55, 0.3);
-  background: rgba(212, 165, 55, 0.05);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-.warn-mark {
-  width: 16px; height: 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--warn);
-  color: var(--warn);
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-/* TOOL VIEW */
-.tool {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  padding: 10px 12px;
-  overflow: hidden;
-}
-.tool > :deep(.module) {
-  width: 100%;
-  min-width: 0;
-}
-
-/* ============ FOOTER ============ */
-.foot {
-  flex-shrink: 0;
-  padding: 5px 12px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-elev);
-  font-size: 10px;
-  color: var(--fg-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* ============ RESPONSIVE ============ */
-@media (max-width: 480px) {
-  .banner-art { font-size: 7px; }
-  .hdr-clock { display: none; }
-  .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
-  .arsenal { padding: 8px; }
-}
-@media (max-width: 360px) {
-  .banner-art { font-size: 6px; }
-  .grid { grid-template-columns: 1fr 1fr; gap: 6px; }
-  .tile { padding: 8px 10px; min-height: 110px; }
-  .tile-name { font-size: 14px; }
-  .tag-warn { display: none; }
-}
-
-/* Cyberind web design system — clean, modern, responsive */
-.site-header {
-  flex-shrink: 0;
-  background: rgba(5, 5, 5, 0.92);
-  border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(14px);
-  position: relative;
-  z-index: 10;
-}
-.site-header::after {
-  content: "";
-  position: absolute;
-  left: 0; right: 0; bottom: -1px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  opacity: .45;
-}
-.nav-shell {
-  min-height: 64px;
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 0 24px;
-  display: flex;
-  align-items: center;
-  gap: 28px;
-}
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  color: #fff;
-  text-align: left;
-  flex-shrink: 0;
-}
-.brand-mark {
-  width: 34px; height: 34px;
-  display: grid; place-items: center;
-  border: 1px solid rgba(239,68,68,.55);
-  color: var(--accent);
-  background: rgba(239,68,68,.07);
-  font-weight: 800;
-  font-size: 13px;
-  box-shadow: 0 0 24px rgba(239,68,68,.08);
-}
-.brand-text { display:flex; flex-direction:column; line-height:1; gap:4px; }
-.brand-text strong { font-size: 14px; letter-spacing: .16em; }
-.brand-text small { color: var(--fg-dim); font-size: 8px; letter-spacing: .28em; }
-.site-nav {
-  display: flex;
-  align-items: center;
-  gap: 22px;
-  flex: 1;
-}
-.site-nav button, .site-nav a {
-  color: var(--fg-dim);
-  font-size: 11px;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  transition: color .2s ease;
-}
-.site-nav button:hover, .site-nav a:hover, .site-nav button.active { color: #fff; }
-.site-nav button.active { color: var(--accent); }
-.nav-divider { width: 1px; height: 18px; background: var(--border); }
-.nav-status { color: var(--fg-dim); font-size: 9px; letter-spacing: .12em; display:flex; align-items:center; gap:7px; }
-.nav-status i { width:6px; height:6px; border-radius:50%; background:#55d98b; box-shadow:0 0 10px rgba(85,217,139,.7); }
-.nav-actions { display:flex; align-items:center; gap:12px; color:var(--fg-dim); font-size:10px; }
-.version { border:1px solid var(--border); padding:5px 8px; }
-.clock { font-variant-numeric: tabular-nums; }
-.mobile-back { display:none; color:var(--accent); font-size:20px; }
-.commandbar {
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 7px 24px 9px;
-  color: var(--fg-ghost);
-  font-size: 10px;
-  letter-spacing: .04em;
-}
-.command-user { color: var(--accent); }
-.command-sep { padding:0 5px; }
-.command-path { color:var(--fg-dim); }
-.command-cursor { color:var(--accent); animation: blink 1s steps(2) infinite; }
-
-.arsenal {
-  max-width: 1440px;
-  width: 100%;
-  margin: 0 auto;
-  padding: 30px 24px 34px;
-  gap: 20px;
-}
-.tool-hero {
-  display:grid;
-  grid-template-columns:minmax(0,1fr) 310px;
-  gap:18px;
-  padding:28px;
-  border:1px solid var(--border);
-  background:
-    radial-gradient(circle at 0% 0%, rgba(239,68,68,.11), transparent 34%),
-    linear-gradient(145deg, rgba(255,255,255,.025), rgba(255,255,255,.008));
-  position:relative;
-  overflow:hidden;
-}
-.tool-hero::before {
-  content:"";
-  position:absolute; inset:0;
-  background:linear-gradient(90deg, rgba(239,68,68,.06) 1px, transparent 1px);
-  background-size:42px 100%;
-  mask-image:linear-gradient(90deg,#000,transparent 75%);
-  pointer-events:none;
-}
-.hero-copy, .hero-terminal { position:relative; z-index:1; }
-.eyebrow { color:var(--accent); font-size:9px; letter-spacing:.2em; font-weight:700; display:flex; gap:8px; align-items:center; }
-.eyebrow i { width:6px; height:6px; background:var(--accent); border-radius:50%; box-shadow:0 0 12px var(--accent); }
-.hero-copy h1 { margin-top:12px; color:#fff; font-family:ui-sans-serif,system-ui,sans-serif; font-size:clamp(28px,4vw,48px); line-height:1.02; letter-spacing:-.045em; max-width:720px; }
-.hero-copy h1 span { color:var(--accent); }
-.hero-copy p { margin-top:12px; color:var(--fg-dim); max-width:650px; font-family:ui-sans-serif,system-ui,sans-serif; font-size:14px; line-height:1.65; }
-.hero-terminal { align-self:stretch; border:1px solid var(--border); background:#070707; padding:18px; display:flex; flex-direction:column; justify-content:center; gap:8px; }
-.hero-terminal span { color:var(--fg-dim); font-size:10px; }
-.hero-terminal strong { color:#fff; font-size:24px; letter-spacing:.08em; }
-.hero-terminal small { color:#55d98b; font-size:9px; letter-spacing:.1em; }
-
-.arsenal-stats {
-  border:0;
-  border-top:1px solid var(--border);
-  border-bottom:1px solid var(--border);
-  background:transparent;
-  padding:12px 2px;
-}
-.grid { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
-.group { gap:10px; }
-.group-head { padding:8px 2px; }
-.grp-label { letter-spacing:.13em; }
-.tile {
-  min-height:158px;
-  border-radius:10px;
-  padding:16px;
-  background:linear-gradient(145deg, rgba(255,255,255,.025), rgba(255,255,255,.008));
-  transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease,background .2s ease;
-}
-.tile::before { width:1px; }
-.tile:hover {
-  transform:translateY(-2px);
-  border-color:rgba(239,68,68,.55);
-  background:linear-gradient(145deg,rgba(239,68,68,.07),rgba(255,255,255,.012));
-  box-shadow:0 14px 40px rgba(0,0,0,.28);
-}
-.tile-name { font-family:ui-sans-serif,system-ui,sans-serif; font-size:16px; letter-spacing:-.01em; }
-.tile-desc { font-family:ui-sans-serif,system-ui,sans-serif; line-height:1.5; }
-.sev { border-radius:999px; padding:2px 7px; }
-.tool { max-width:1440px; width:100%; margin:0 auto; padding:24px; }
-.site-footer {
-  flex-shrink:0;
-  border-top:1px solid var(--border);
-  background:rgba(5,5,5,.92);
-  min-height:40px;
-  padding:0 24px;
-  display:flex; align-items:center; gap:8px;
-  color:var(--fg-ghost); font-size:9px; letter-spacing:.08em;
-}
-.footer-spacer { flex:1; }
-
-@media (max-width: 760px) {
-  .nav-shell { min-height:58px; padding:0 14px; gap:10px; }
-  .mobile-back { display:block; }
-  .brand-mark { width:30px; height:30px; }
-  .site-nav { display:none; }
-  .nav-actions { margin-left:auto; }
-  .clock { display:none; }
-  .commandbar { padding:6px 14px 8px; }
-  .arsenal { padding:18px 14px 26px; }
-  .tool-hero { grid-template-columns:1fr; padding:22px; }
-  .hero-terminal { min-height:120px; }
-  .grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
-  .tile { min-height:145px; padding:13px; }
-  .tile-desc { font-size:10px; }
-  .tool { padding:14px; }
-  .site-footer { padding:0 14px; }
-  .site-footer span:nth-child(3), .site-footer span:last-child { display:none; }
-}
-@media (max-width: 430px) {
-  .brand-text strong { font-size:12px; }
-  .brand-text small { font-size:7px; }
-  .version { display:none; }
-  .hero-copy h1 { font-size:29px; }
-  .hero-copy p { font-size:13px; }
-  .tool-hero { padding:18px; }
-  .grid { grid-template-columns:1fr; }
-  .tile { min-height:132px; }
-  .arsenal-stats { gap:7px; }
-  .stats-grp { padding:2px 5px; }
-}
-
+.site{min-height:100%;background:transparent;color:#18181b}
+.header{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.78);backdrop-filter:blur(14px);border-bottom:1px solid rgba(239,68,68,.10)}
+.nav{max-width:1152px;margin:auto;height:64px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.brand{display:flex;align-items:center;gap:10px;font:700 20px "PT Sans",sans-serif;color:#18181b}
+.brand img{width:28px;height:28px;object-fit:contain}.accent,.eyebrow,.live,.ghead>span,.ctop>b{color:#ef4444}
+.navlinks{display:flex;align-items:center;gap:28px;font:14px "DM Sans",sans-serif;color:#71717a}.navlinks button,.navlinks a{color:inherit}.navlinks .on{color:#ef4444}.live{font-size:11px;font-weight:600;letter-spacing:.12em}.live i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#ef4444;box-shadow:0 0 8px #ef4444;margin-right:5px}
+.navmeta{display:flex;gap:12px;font:11px "DM Sans";color:#a1a1aa}.crumb{max-width:1152px;margin:auto;padding:0 24px 8px;font:11px "DM Sans";color:#71717a}.crumb span:first-child{color:#ef4444}.crumb b{margin:0 5px;color:#d4d4d8}.crumb i{color:#ef4444;font-style:normal;animation:blink 1s infinite}@keyframes blink{50%{opacity:0}}
+main{max-width:1152px;margin:auto;padding:34px 24px 70px}.hero{display:grid;grid-template-columns:1.15fr .85fr;gap:32px;align-items:center;padding:48px 0}.eyebrow{font:600 12px "DM Sans";letter-spacing:.14em;margin-bottom:14px}.eyebrow i{display:inline-block;width:7px;height:7px;border-radius:50%;background:#ef4444;margin-right:7px}.hero h1{font:700 clamp(42px,7vw,76px) "PT Sans";letter-spacing:-.045em;line-height:.95;margin:0}.hero h1 span{color:#ef4444}.hero p{font:400 17px/1.7 "DM Sans";color:#71717a;max-width:620px;margin:22px 0}.hero-actions{display:flex;gap:10px;align-items:center}.primary,.secondary{border-radius:12px;padding:12px 17px;font:600 13px "DM Sans";transition:.2s}.primary{background:#ef4444;color:#fff;box-shadow:0 10px 25px rgba(239,68,68,.18)}.primary:hover{transform:translateY(-2px);background:#dc2626}.secondary{border:1px solid rgba(239,68,68,.18);color:#52525b;background:rgba(255,255,255,.5)}.secondary:hover{border-color:#ef4444;color:#ef4444}
+.terminal{border-radius:18px;overflow:hidden}.termbar{height:42px;padding:0 15px;display:flex;align-items:center;gap:7px;color:#d4d4d8;font:11px "DM Sans";background:rgba(17,19,24,.9)}.termbar span{width:9px;height:9px;border-radius:50%;background:#ef4444}.termbar span:nth-child(2){background:#f59e0b}.termbar span:nth-child(3){background:#22c55e}.termbar b{margin-left:auto;font-weight:500}.termbody{min-height:245px;padding:25px;font:13px/2 "JetBrains Mono",monospace;color:#d4d4d8;background:rgba(17,19,24,.72)}.termbody .ok{color:#86efac}.termbody .white{color:#fff}.termbody .muted{color:#a1a1aa}.termbody em{display:inline-block;width:8px;height:15px;background:#fff;animation:blink 1s infinite}
+.glass-card{background:rgba(240,246,255,.75);backdrop-filter:blur(12px) saturate(160%);border:1px solid rgba(254,202,202,.6);box-shadow:0 8px 32px rgba(239,68,68,.06)}.dark .glass-card{background:rgba(24,24,27,.75);border-color:rgba(255,255,255,.1);box-shadow:0 8px 32px rgba(0,0,0,.37)}.terminal-glass{background:rgba(17,19,24,.65)!important;backdrop-filter:blur(16px) saturate(180%);border:1px solid rgba(255,255,255,.12)!important;box-shadow:0 25px 50px -12px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.1)}
+.intro{border-radius:20px;padding:25px;display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center;margin-bottom:14px}.intro small,.tooltitle small{font:700 10px "DM Sans";letter-spacing:.15em;color:#ef4444}.intro h2{font:700 25px "PT Sans";margin-top:7px}.intro p{font:14px/1.7 "DM Sans";color:#71717a}
+.stats{display:flex;align-items:center;gap:18px;flex-wrap:wrap;border-radius:18px;padding:13px 16px;margin-bottom:34px;font:12px "DM Sans";color:#71717a}.stats strong{color:#18181b;font:700 13px "DM Sans";margin-right:4px}.stats strong small{font-size:9px;letter-spacing:.15em}.stats span b{color:#ef4444}
+.groups{display:flex;flex-direction:column;gap:34px}.ghead{display:flex;align-items:center;gap:9px;margin-bottom:12px;font-family:"DM Sans"}.ghead>span{font-size:17px}.ghead strong{font-size:13px;letter-spacing:.13em;text-transform:uppercase}.ghead small{font-size:10px;color:#a1a1aa;font-style:italic}.ghead i{font-size:10px;color:#a1a1aa;font-style:normal}.ghead hr{flex:1;border:0;border-top:1px solid rgba(239,68,68,.14);margin-left:5px}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card{position:relative;text-align:left;padding:17px;border-radius:17px;min-height:190px;display:flex;flex-direction:column;transition:transform .28s cubic-bezier(.4,0,.2,1),box-shadow .28s,border-color .28s}.card:hover{transform:translateY(-4px);border-color:rgba(239,68,68,.4);box-shadow:0 14px 34px rgba(239,68,68,.13)}.glass-touch:hover{background-image:linear-gradient(135deg,rgba(254,226,226,.8),rgba(254,202,202,.5))}.ctop{display:flex;justify-content:space-between;color:#a1a1aa;font:10px "DM Sans"}.card h3{font:700 18px "PT Sans";margin-top:16px}.card>small{color:#ef4444;font:600 10px "DM Sans";text-transform:uppercase;letter-spacing:.1em;margin-top:3px}.card p{font:13px/1.55 "DM Sans";color:#71717a;margin-top:9px}.cfoot{margin-top:auto;padding-top:14px;display:flex;justify-content:space-between;align-items:center}.cfoot em{font:600 9px "DM Sans";font-style:normal;text-transform:uppercase;padding:3px 7px;border:1px solid #d4d4d8;color:#71717a;border-radius:99px}.cfoot .s-high,.cfoot .s-critical{color:#ef4444;border-color:rgba(239,68,68,.35)}.cfoot .s-medium{color:#ca8a04;border-color:rgba(202,138,4,.3)}
+.toolview{padding-top:12px}.back{font:600 12px "DM Sans";color:#ef4444;margin-bottom:14px}.tooltitle{border-radius:18px;padding:20px;margin-bottom:16px}.tooltitle h2{font:700 30px "PT Sans";margin-top:5px}.tooltitle p{font:14px "DM Sans";color:#71717a;margin-top:5px}
+footer{max-width:1152px;margin:auto;border-top:1px solid rgba(239,68,68,.10);padding:22px 24px 28px;display:flex;justify-content:space-between;gap:20px;font:11px "DM Sans";color:#71717a}
+@media(max-width:900px){.navlinks{display:none}.hero{grid-template-columns:1fr;padding:30px 0}.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.intro{grid-template-columns:1fr}.nav{padding:0 16px}main{padding:24px 16px 55px}}
+@media(max-width:520px){.navmeta span:first-child{display:none}.brand{font-size:18px}.hero h1{font-size:43px}.hero p{font-size:14px}.hero-actions{flex-wrap:wrap}.grid{grid-template-columns:1fr}.card{min-height:160px}.stats{gap:10px}.ghead small{display:none}footer{padding:18px 16px;flex-direction:column}.termbody{min-height:210px;padding:18px}}
 </style>
