@@ -259,3 +259,58 @@ textarea.term-input:focus { border-color: var(--accent); outline: none; }
 .sev-medium { color: #d4a537; border-color: #d4a537; }
 .sev-low { color: #7fb3d5; border-color: #7fb3d5; }
 .sev-info { color: var(--fg-dim); border-color: var(--border-hot); }
+
+
+/* Cyberind global component layer */
+:root {
+  --bg: #050505;
+  --bg-elev: #080808;
+  --bg-panel: #0a0a0a;
+  --border: #1d1d1d;
+  --border-hot: #303030;
+  --fg: #e5e5e5;
+  --fg-dim: #858585;
+  --fg-ghost: #444;
+  --accent: #ef4444;
+  --accent-dim: #b91c1c;
+  --alert: #ef4444;
+}
+.module {
+  gap: 14px;
+  font-family: var(--mono);
+}
+.form, .row { gap: 9px; }
+.mini, .toggle, textarea.term-input, select, input {
+  border-radius: 8px;
+}
+.mini {
+  min-height: 38px;
+  padding: 7px 10px;
+  background: #090909;
+}
+textarea.term-input {
+  padding: 10px 12px;
+  border-color: #222;
+}
+textarea.term-input:focus, input:focus, select:focus {
+  border-color: rgba(239,68,68,.7) !important;
+  box-shadow: 0 0 0 3px rgba(239,68,68,.08);
+}
+.exec {
+  min-height: 38px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(239,68,68,.12);
+}
+.exec:hover:not(:disabled) {
+  background: #dc2626;
+  box-shadow: 0 10px 28px rgba(239,68,68,.22);
+}
+.btn-ghost {
+  border-radius: 7px;
+  padding: 7px 10px;
+}
+.bar { height: 10px; border-radius: 999px; }
+.bar-fill { border-radius: inherit; }
