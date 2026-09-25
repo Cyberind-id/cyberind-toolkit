@@ -3,23 +3,14 @@
 //
 // Sources (default-on, no API key needed):
 //   - crt.sh                  — certificate transparency
-//   - certspotter             — certificate transparency (parallel)
-//   - hackertarget            — passive DNS (rate-limited 50/day per IP)
+//   - certspotter             — certificate transparency
+//   - hackertarget            — passive DNS
 //   - alienvault OTX          — passive DNS
 //   - anubis-db               — community subdomain DB
 //   - rapiddns                — HTML scrape
-//   - wayback (web.archive.org)— historical URLs → extract hosts
+//   - wayback                 — historical URLs → extract hosts
 //   - urlscan                 — domain search
 //   - threatcrowd             — passive DNS
-//
-// Key-based sources (opt-in, user supplies API key):
-//   - c99.nl                  — fast commercial source
-//   - virustotal              — domain relations
-//   - securitytrails          — premium passive
-//   - chaos (projectdiscovery)— curated dataset
-//   - shodan                  — host search
-//   - binaryedge              — passive DNS
-//   - fullhunt                — attack-surface DB
 // ===================================================================
 
 use std::collections::{HashMap, HashSet};
@@ -37,20 +28,11 @@ use tokio::sync::Semaphore;
 #[derive(Debug, Clone, Deserialize)]
 pub struct SubdomainRequest {
     pub domain: String,
-    /// Source names to enable. If None/empty, all default-on sources run.
-    /// Available: crtsh, certspotter, hackertarget, alienvault, anubis,
-    /// rapiddns, wayback, urlscan, threatcrowd, c99, virustotal,
-    /// securitytrails, chaos, shodan, binaryedge, fullhunt.
     #[serde(default)]
     pub sources: Option<Vec<String>>,
-
-    /// Optional brute-force wordlist (in addition to passive).
     #[serde(default)]
     pub wordlist: Option<Vec<String>>,
-
     pub concurrency: usize,
-
-    /// API keys for key-based sources. Map of source-name → key.
     #[serde(default)]
     pub api_keys: Option<HashMap<String, String>>,
 }
@@ -70,14 +52,10 @@ pub struct SourceStat {
     pub took_ms: u128,
 }
 
-// ------------------------------------------------------------------
-// HTTP client
-// ------------------------------------------------------------------
-
 fn build_client() -> reqwest::Client {
     reqwest::Client::builder()
         .timeout(Duration::from_secs(10))
-        .user_agent("Mozilla/5.0 (PocketPentester/0.1)")
+        .user_agent("Mozilla/5.0 (Cyberind Toolkit/1.0)")
         .build()
         .unwrap_or_else(|_| reqwest::Client::new())
 }
@@ -88,19 +66,22 @@ fn norm_host(s: &str, root: &str) -> Option<String> {
         .trim_start_matches('.')
         .to_lowercase();
     let h = h.split_whitespace().next()?.to_string();
-    if h.is_empty() { return None; }
-    if !h.ends_with(root) { return None; }
-    if h.contains('@') { return None; }
+    if h.is_empty() || !h.ends_with(root) || h.contains('@') {
+        return None;
+    }
     if h.starts_with("xn--") && h.len() < 6 { return None; }
     Some(h)
 }
 
-// ------------------------------------------------------------------
-// passive sources (no key)
-// ------------------------------------------------------------------
-
 async fn fetch_json(client: &reqwest::Client, url: &str) -> anyhow::Result<serde_json::Value> {
-    fetch_json_with_headers(client, url, &[]).await
+    let resp = client.get(url).send().await?;
+    let status = resp.status();
+    let body = resp.text().await?;
+    if !status.is_success() {
+        anyhow::bail!("HTTP {} (body: {})", status, body.chars().take(120).collect::<String>());
+    }
+    if body.trim().is_empty() { anyhow::bail!("empty response"); }
+    serde_json::from_str(&body).map_err(|e| anyhow::anyhow!("json parse: {e}"))
 }
 
 async fn fetch_json_with_headers(
@@ -116,9 +97,7 @@ async fn fetch_json_with_headers(
     if !status.is_success() {
         anyhow::bail!("HTTP {} (body: {})", status, body.chars().take(120).collect::<String>());
     }
-    if body.trim().is_empty() {
-        anyhow::bail!("empty response");
-    }
+    if body.trim().is_empty() { anyhow::bail!("empty response"); }
     serde_json::from_str(&body).map_err(|e| anyhow::anyhow!("json parse: {e}"))
 }
 
@@ -142,8 +121,17 @@ async fn src_crtsh(client: &reqwest::Client, domain: &str) -> anyhow::Result<Has
 }
 
 async fn src_certspotter(client: &reqwest::Client, domain: &str) -> anyhow::Result<HashSet<String>> {
-    let url = format!("https://api.certspotter.com/v1/issuances?domain={}&include_subdomains=true&expand=dns_names", domain);
-    let val = fetch_json(client, &url).await?;
+    // Cert Spotter REST API. The target domain comes directly from the
+    // SubFindr form and is encoded by reqwest's URL query handling.
+    let mut url = reqwest::Url::parse("https://api.certspotter.com/v1/issuances")
+        .map_err(|e| anyhow::anyhow!("invalid Cert Spotter URL: {e}"))?;
+    url.query_pairs_mut()
+        .append_pair("domain", domain)
+        .append_pair("include_subdomains", "true")
+        .append_pair("expand", "dns_names")
+        .append_pair("expand", "cert");
+
+    let val = fetch_json(client, url.as_str()).await?;
     let arr = val.as_array().map(|a| a.as_slice()).unwrap_or(&[]);
     let mut set = HashSet::new();
     for r in arr {
@@ -221,7 +209,7 @@ async fn src_wayback(client: &reqwest::Client, domain: &str) -> anyhow::Result<H
     let arr = val.as_array().map(|a| a.as_slice()).unwrap_or(&[]);
     let mut set = HashSet::new();
     for (i, row) in arr.iter().enumerate() {
-        if i == 0 { continue; } // header row
+        if i == 0 { continue; }
         if let Some(u) = row.as_array().and_then(|r| r.first()).and_then(|v| v.as_str()) {
             if let Some(host) = url::Url::parse(u).ok().and_then(|p| p.host_str().map(String::from)) {
                 if let Some(h) = norm_host(&host, domain) { set.insert(h); }
@@ -254,10 +242,6 @@ async fn src_threatcrowd(client: &reqwest::Client, domain: &str) -> anyhow::Resu
     }
     Ok(set)
 }
-
-// ------------------------------------------------------------------
-// key-based sources
-// ------------------------------------------------------------------
 
 async fn src_c99(client: &reqwest::Client, domain: &str, key: &str) -> anyhow::Result<HashSet<String>> {
     let url = format!("https://api.c99.nl/subdomainfinder?key={key}&domain={domain}&json");
@@ -347,10 +331,6 @@ async fn src_fullhunt(client: &reqwest::Client, domain: &str, key: &str) -> anyh
     Ok(set)
 }
 
-// ------------------------------------------------------------------
-// orchestrator
-// ------------------------------------------------------------------
-
 const FREE_SOURCES: &[&str] = &[
     "crtsh", "certspotter", "hackertarget", "alienvault", "anubis",
     "rapiddns", "wayback", "urlscan", "threatcrowd",
@@ -374,22 +354,22 @@ async fn fetch_source(
     keys: &HashMap<String, String>,
 ) -> anyhow::Result<HashSet<String>> {
     match name {
-        "crtsh"          => src_crtsh(client, domain).await,
-        "certspotter"    => src_certspotter(client, domain).await,
-        "hackertarget"   => src_hackertarget(client, domain).await,
-        "alienvault"     => src_alienvault(client, domain).await,
-        "anubis"         => src_anubis(client, domain).await,
-        "rapiddns"       => src_rapiddns(client, domain).await,
-        "wayback"        => src_wayback(client, domain).await,
-        "urlscan"        => src_urlscan(client, domain).await,
-        "threatcrowd"    => src_threatcrowd(client, domain).await,
-        "c99"            => src_c99(client, domain, keys.get("c99").ok_or_else(|| anyhow::anyhow!("missing c99 api key"))?).await,
-        "virustotal"     => src_virustotal(client, domain, keys.get("virustotal").ok_or_else(|| anyhow::anyhow!("missing virustotal api key"))?).await,
+        "crtsh" => src_crtsh(client, domain).await,
+        "certspotter" => src_certspotter(client, domain).await,
+        "hackertarget" => src_hackertarget(client, domain).await,
+        "alienvault" => src_alienvault(client, domain).await,
+        "anubis" => src_anubis(client, domain).await,
+        "rapiddns" => src_rapiddns(client, domain).await,
+        "wayback" => src_wayback(client, domain).await,
+        "urlscan" => src_urlscan(client, domain).await,
+        "threatcrowd" => src_threatcrowd(client, domain).await,
+        "c99" => src_c99(client, domain, keys.get("c99").ok_or_else(|| anyhow::anyhow!("missing c99 api key"))?).await,
+        "virustotal" => src_virustotal(client, domain, keys.get("virustotal").ok_or_else(|| anyhow::anyhow!("missing virustotal api key"))?).await,
         "securitytrails" => src_securitytrails(client, domain, keys.get("securitytrails").ok_or_else(|| anyhow::anyhow!("missing securitytrails api key"))?).await,
-        "chaos"          => src_chaos(client, domain, keys.get("chaos").ok_or_else(|| anyhow::anyhow!("missing chaos api key"))?).await,
-        "shodan"         => src_shodan(client, domain, keys.get("shodan").ok_or_else(|| anyhow::anyhow!("missing shodan api key"))?).await,
-        "binaryedge"     => src_binaryedge(client, domain, keys.get("binaryedge").ok_or_else(|| anyhow::anyhow!("missing binaryedge api key"))?).await,
-        "fullhunt"       => src_fullhunt(client, domain, keys.get("fullhunt").ok_or_else(|| anyhow::anyhow!("missing fullhunt api key"))?).await,
+        "chaos" => src_chaos(client, domain, keys.get("chaos").ok_or_else(|| anyhow::anyhow!("missing chaos api key"))?).await,
+        "shodan" => src_shodan(client, domain, keys.get("shodan").ok_or_else(|| anyhow::anyhow!("missing shodan api key"))?).await,
+        "binaryedge" => src_binaryedge(client, domain, keys.get("binaryedge").ok_or_else(|| anyhow::anyhow!("missing binaryedge api key"))?).await,
+        "fullhunt" => src_fullhunt(client, domain, keys.get("fullhunt").ok_or_else(|| anyhow::anyhow!("missing fullhunt api key"))?).await,
         _ => Err(anyhow::anyhow!("unknown source: {name}")),
     }
 }
@@ -409,9 +389,6 @@ pub async fn subdomain_enum(
     let resolver = Arc::new(resolver());
     let keys = req.api_keys.clone().unwrap_or_default();
 
-    // Treat an omitted/empty source selection as the normal free-source mode.
-    // This prevents an empty persisted UI selection from silently disabling all
-    // passive sources after a browser reload.
     let enabled: Vec<String> = match req.sources.clone() {
         Some(v) if !v.is_empty() => v,
         _ => FREE_SOURCES.iter().map(|s| s.to_string()).collect(),
@@ -419,8 +396,7 @@ pub async fn subdomain_enum(
 
     let _ = app.emit("subenum:status", format!("running {} source(s) in parallel", enabled.len()));
 
-    // ---- run all sources concurrently ----
-    let mut all: HashMap<String, String> = HashMap::new(); // host → first-seen source
+    let mut all: HashMap<String, String> = HashMap::new();
     let stats: Arc<tokio::sync::Mutex<Vec<SourceStat>>> = Arc::new(tokio::sync::Mutex::new(Vec::new()));
 
     let source_results = futures::future::join_all(enabled.iter().map(|name| {
@@ -452,12 +428,9 @@ pub async fn subdomain_enum(
     })).await;
 
     for (src_name, set) in source_results {
-        for h in set {
-            all.entry(h).or_insert(src_name.clone());
-        }
+        for h in set { all.entry(h).or_insert(src_name.clone()); }
     }
 
-    // ---- bruteforce additions ----
     if let Some(words) = &req.wordlist {
         for w in words {
             let host = format!("{}.{}", w.trim(), req.domain);
@@ -468,7 +441,6 @@ pub async fn subdomain_enum(
     let total = all.len();
     let _ = app.emit("subenum:status", format!("aggregated {total} candidates — resolving"));
 
-    // ---- DNS resolve all candidates concurrently ----
     let sem = Arc::new(Semaphore::new(req.concurrency.max(1)));
     let done = Arc::new(std::sync::atomic::AtomicUsize::new(0));
 
