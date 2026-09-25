@@ -62,7 +62,7 @@ const activeTool=computed(()=>tools.find(t=>t.id===active.value)??null);
 const grouped=computed(()=>groups.map(g=>({...g,tools:tools.filter(t=>t.cat===g.id)})).filter(g=>g.tools.length));
 function open(id:ToolId){ history.pushState({tool:id},"",`#${id}`); active.value=id }
 function syncFromHistory(){ const id=history.state?.tool as ToolId|undefined; active.value=id&&tools.some(t=>t.id===id)?id:null }
-function back(){ if(active.value!==null) history.back() else active.value=null }
+function back(){ if(active.value!==null){ history.back() } else { active.value=null } }
 function tick(){clock.value=new Date().toTimeString().slice(0,8)}
 let timer: ReturnType<typeof setInterval>
 onMounted(async()=>{try{banner.value=await invoke<string>("banner")}catch{banner.value="CYBERIND TOOLKIT"} tick(); timer=setInterval(tick,1000); syncFromHistory(); window.addEventListener("popstate",syncFromHistory)})
