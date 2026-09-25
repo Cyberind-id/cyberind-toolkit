@@ -106,33 +106,36 @@ function open(id: ToolId) { active.value = id; }
 <template>
   <SplashScreen v-if="showSplash" @done="showSplash = false" />
   <div class="shell" v-show="!showSplash">
-    <!-- ============ HEADER ============ -->
-    <header class="hdr">
-      <div class="hdr-top">
-        <button v-if="activeTool" class="hdr-back" @click="back" title="back to arsenal">◀ back</button>
-        <div class="banner-wrap">
-          <pre class="banner-art">┏━┓┏━┓┏━╸╻┏ ┏━╸╺┳╸  ┏━┓┏━╸┏┓╻╺┳╸┏━╸┏━┓╺┳╸┏━╸┏━┓
-┣━┛┃ ┃┃  ┣┻┓┣╸  ┃   ┣━┛┣╸ ┃┗┫ ┃ ┣╸ ┗━┓ ┃ ┣╸ ┣┳┛
-╹  ┗━┛┗━╸╹ ╹┗━╸ ╹   ╹  ┗━╸╹ ╹ ╹ ┗━╸┗━┛ ╹ ┗━╸╹┗╸</pre>
+    <!-- ============ CYBERIND HEADER ============ -->
+    <header class="site-header">
+      <div class="nav-shell">
+        <button v-if="activeTool" class="mobile-back" @click="back" aria-label="Kembali">←</button>
+        <button class="brand" @click="back" aria-label="Cyberind Toolkit">
+          <span class="brand-mark">&lt;/&gt;</span>
+          <span class="brand-text">
+            <strong>CYBERIND</strong>
+            <small>TOOLKIT</small>
+          </span>
+        </button>
+
+        <nav class="site-nav" aria-label="Navigasi">
+          <button :class="{ active: !activeTool }" @click="back">Tools</button>
+          <a href="https://cyberind.my.id" target="_blank" rel="noreferrer">Cyberind.id</a>
+          <span class="nav-divider"></span>
+          <span class="nav-status"><i></i> SYSTEM ONLINE</span>
+        </nav>
+
+        <div class="nav-actions">
+          <span class="version">v0.1.0</span>
+          <span class="clock">{{ clock }}</span>
         </div>
       </div>
-      <div class="hdr-meta">
-        <span class="tag">v0.1.0</span>
-        <span class="hdr-spacer" />
-        <span class="hdr-status">
-          <span class="pulse" />
-          {{ activeTool ? "armed" : "idle" }}
-        </span>
-        <span class="hdr-clock">{{ clock }}</span>
-      </div>
-      <div class="hdr-sub">
-        <span class="crumb-user">root@cyberind</span>
-        <span class="crumb-sep">:</span>
-        <span v-if="activeTool" class="crumb-path">~/arsenal/{{ activeTool.name }}</span>
-        <span v-else class="crumb-path">~/arsenal</span>
-        <span class="crumb-sep">$</span>
-        <span v-if="!activeTool" class="crumb-cmd"> ls -la</span>
-        <span class="crumb-cursor">▊</span>
+
+      <div class="commandbar">
+        <span class="command-user">cyberind</span>
+        <span class="command-sep">/</span>
+        <span class="command-path">{{ activeTool ? activeTool.name : 'toolkit' }}</span>
+        <span class="command-cursor">_</span>
       </div>
     </header>
 
@@ -140,6 +143,19 @@ function open(id: ToolId) { active.value = id; }
     <main class="main">
       <!-- ARSENAL / HOME -->
       <div v-show="!activeTool" class="arsenal">
+        <section class="tool-hero">
+          <div class="hero-copy">
+            <span class="eyebrow"><i></i> CYBERIND TOOLKIT</span>
+            <h1>Security tools, <span>built for the web.</span></h1>
+            <p>Reconnaissance, analysis, diagnostics, and security utilities in one clean workspace.</p>
+          </div>
+          <div class="hero-terminal">
+            <span>$ toolkit --status</span>
+            <strong>READY</strong>
+            <small>21 modules available</small>
+          </div>
+        </section>
+
         <div class="arsenal-stats">
           <span class="stats-total">{{ tools.length }} modules</span>
           <span v-for="g in grouped" :key="g.id" class="stats-grp" :class="`cat-${g.id}`">
@@ -210,8 +226,12 @@ function open(id: ToolId) { active.value = id; }
     </main>
 
     <!-- ============ FOOTER ============ -->
-    <footer class="foot">
-      <span class="foot-l">{{ banner }}</span>
+    <footer class="site-footer">
+      <span>© Cyberind.id</span>
+      <span class="footer-dot">•</span>
+      <span>Independent security toolkit</span>
+      <span class="footer-spacer"></span>
+      <span>{{ banner }}</span>
     </footer>
   </div>
 </template>
@@ -608,4 +628,196 @@ function open(id: ToolId) { active.value = id; }
   .tile-name { font-size: 14px; }
   .tag-warn { display: none; }
 }
+
+/* Cyberind web design system — clean, modern, responsive */
+.site-header {
+  flex-shrink: 0;
+  background: rgba(5, 5, 5, 0.92);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(14px);
+  position: relative;
+  z-index: 10;
+}
+.site-header::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: .45;
+}
+.nav-shell {
+  min-height: 64px;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+  text-align: left;
+  flex-shrink: 0;
+}
+.brand-mark {
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  border: 1px solid rgba(239,68,68,.55);
+  color: var(--accent);
+  background: rgba(239,68,68,.07);
+  font-weight: 800;
+  font-size: 13px;
+  box-shadow: 0 0 24px rgba(239,68,68,.08);
+}
+.brand-text { display:flex; flex-direction:column; line-height:1; gap:4px; }
+.brand-text strong { font-size: 14px; letter-spacing: .16em; }
+.brand-text small { color: var(--fg-dim); font-size: 8px; letter-spacing: .28em; }
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex: 1;
+}
+.site-nav button, .site-nav a {
+  color: var(--fg-dim);
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  transition: color .2s ease;
+}
+.site-nav button:hover, .site-nav a:hover, .site-nav button.active { color: #fff; }
+.site-nav button.active { color: var(--accent); }
+.nav-divider { width: 1px; height: 18px; background: var(--border); }
+.nav-status { color: var(--fg-dim); font-size: 9px; letter-spacing: .12em; display:flex; align-items:center; gap:7px; }
+.nav-status i { width:6px; height:6px; border-radius:50%; background:#55d98b; box-shadow:0 0 10px rgba(85,217,139,.7); }
+.nav-actions { display:flex; align-items:center; gap:12px; color:var(--fg-dim); font-size:10px; }
+.version { border:1px solid var(--border); padding:5px 8px; }
+.clock { font-variant-numeric: tabular-nums; }
+.mobile-back { display:none; color:var(--accent); font-size:20px; }
+.commandbar {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 7px 24px 9px;
+  color: var(--fg-ghost);
+  font-size: 10px;
+  letter-spacing: .04em;
+}
+.command-user { color: var(--accent); }
+.command-sep { padding:0 5px; }
+.command-path { color:var(--fg-dim); }
+.command-cursor { color:var(--accent); animation: blink 1s steps(2) infinite; }
+
+.arsenal {
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 30px 24px 34px;
+  gap: 20px;
+}
+.tool-hero {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 310px;
+  gap:18px;
+  padding:28px;
+  border:1px solid var(--border);
+  background:
+    radial-gradient(circle at 0% 0%, rgba(239,68,68,.11), transparent 34%),
+    linear-gradient(145deg, rgba(255,255,255,.025), rgba(255,255,255,.008));
+  position:relative;
+  overflow:hidden;
+}
+.tool-hero::before {
+  content:"";
+  position:absolute; inset:0;
+  background:linear-gradient(90deg, rgba(239,68,68,.06) 1px, transparent 1px);
+  background-size:42px 100%;
+  mask-image:linear-gradient(90deg,#000,transparent 75%);
+  pointer-events:none;
+}
+.hero-copy, .hero-terminal { position:relative; z-index:1; }
+.eyebrow { color:var(--accent); font-size:9px; letter-spacing:.2em; font-weight:700; display:flex; gap:8px; align-items:center; }
+.eyebrow i { width:6px; height:6px; background:var(--accent); border-radius:50%; box-shadow:0 0 12px var(--accent); }
+.hero-copy h1 { margin-top:12px; color:#fff; font-family:ui-sans-serif,system-ui,sans-serif; font-size:clamp(28px,4vw,48px); line-height:1.02; letter-spacing:-.045em; max-width:720px; }
+.hero-copy h1 span { color:var(--accent); }
+.hero-copy p { margin-top:12px; color:var(--fg-dim); max-width:650px; font-family:ui-sans-serif,system-ui,sans-serif; font-size:14px; line-height:1.65; }
+.hero-terminal { align-self:stretch; border:1px solid var(--border); background:#070707; padding:18px; display:flex; flex-direction:column; justify-content:center; gap:8px; }
+.hero-terminal span { color:var(--fg-dim); font-size:10px; }
+.hero-terminal strong { color:#fff; font-size:24px; letter-spacing:.08em; }
+.hero-terminal small { color:#55d98b; font-size:9px; letter-spacing:.1em; }
+
+.arsenal-stats {
+  border:0;
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  background:transparent;
+  padding:12px 2px;
+}
+.grid { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+.group { gap:10px; }
+.group-head { padding:8px 2px; }
+.grp-label { letter-spacing:.13em; }
+.tile {
+  min-height:158px;
+  border-radius:10px;
+  padding:16px;
+  background:linear-gradient(145deg, rgba(255,255,255,.025), rgba(255,255,255,.008));
+  transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease,background .2s ease;
+}
+.tile::before { width:1px; }
+.tile:hover {
+  transform:translateY(-2px);
+  border-color:rgba(239,68,68,.55);
+  background:linear-gradient(145deg,rgba(239,68,68,.07),rgba(255,255,255,.012));
+  box-shadow:0 14px 40px rgba(0,0,0,.28);
+}
+.tile-name { font-family:ui-sans-serif,system-ui,sans-serif; font-size:16px; letter-spacing:-.01em; }
+.tile-desc { font-family:ui-sans-serif,system-ui,sans-serif; line-height:1.5; }
+.sev { border-radius:999px; padding:2px 7px; }
+.tool { max-width:1440px; width:100%; margin:0 auto; padding:24px; }
+.site-footer {
+  flex-shrink:0;
+  border-top:1px solid var(--border);
+  background:rgba(5,5,5,.92);
+  min-height:40px;
+  padding:0 24px;
+  display:flex; align-items:center; gap:8px;
+  color:var(--fg-ghost); font-size:9px; letter-spacing:.08em;
+}
+.footer-spacer { flex:1; }
+
+@media (max-width: 760px) {
+  .nav-shell { min-height:58px; padding:0 14px; gap:10px; }
+  .mobile-back { display:block; }
+  .brand-mark { width:30px; height:30px; }
+  .site-nav { display:none; }
+  .nav-actions { margin-left:auto; }
+  .clock { display:none; }
+  .commandbar { padding:6px 14px 8px; }
+  .arsenal { padding:18px 14px 26px; }
+  .tool-hero { grid-template-columns:1fr; padding:22px; }
+  .hero-terminal { min-height:120px; }
+  .grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+  .tile { min-height:145px; padding:13px; }
+  .tile-desc { font-size:10px; }
+  .tool { padding:14px; }
+  .site-footer { padding:0 14px; }
+  .site-footer span:nth-child(3), .site-footer span:last-child { display:none; }
+}
+@media (max-width: 430px) {
+  .brand-text strong { font-size:12px; }
+  .brand-text small { font-size:7px; }
+  .version { display:none; }
+  .hero-copy h1 { font-size:29px; }
+  .hero-copy p { font-size:13px; }
+  .tool-hero { padding:18px; }
+  .grid { grid-template-columns:1fr; }
+  .tile { min-height:132px; }
+  .arsenal-stats { gap:7px; }
+  .stats-grp { padding:2px 5px; }
+}
+
 </style>
