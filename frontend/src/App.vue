@@ -22,7 +22,6 @@ import Banner from "./components/modules/Banner.vue";
 import Encoder from "./components/modules/Encoder.vue";
 import HashTools from "./components/modules/HashTools.vue";
 import DomainGrabber from "./components/modules/DomainGrabber.vue";
-import SplashScreen from "./components/SplashScreen.vue";
 
 type ToolId = "ports"|"subs"|"httpx"|"takeguard"|"sqltrace"|"xenxss"|"tokenscope"|"vulnforge"|"autopwn"|"lanmap"|"reqlab"|"dirfuzz"|"payloadgen"|"adminfinder"|"formbrute"|"dnscope"|"ssl"|"banner"|"codeshift"|"hash"|"domgrab";
 type Cat = "recon"|"exploit"|"utility"|"network"|"manual";
@@ -51,14 +50,14 @@ const tools:Tool[]=[
 {id:"hash",code:"20",name:"HashLens",tagline:"id + calc",desc:"Hash identification and calculation.",cat:"utility",severity:"info"},
 {id:"domgrab",code:"21",name:"DomainTrace",tagline:"bulk harvest",desc:"Domain collection for authorized research.",cat:"recon",severity:"info"}];
 
-const groups:{id:Cat;label:string;desc:string;mark:string}[]=[
+const groups:{id: Cat;label:string;desc:string;mark:string}[]=[
 {id:"recon",label:"Reconnaissance",desc:"passive + active discovery",mark:"◉"},
 {id:"exploit",label:"Security Testing",desc:"vulnerability assessment",mark:"⌁"},
 {id:"network",label:"Network",desc:"network & protocol diagnostics",mark:"≋"},
 {id:"manual",label:"Manual",desc:"request analysis workspace",mark:"✎"},
 {id:"utility",label:"Utilities",desc:"helpers & transformations",mark:"⚙"}];
 
-const active=ref<ToolId|null>(null), banner=ref(""), clock=ref(""), showSplash=ref(true);
+const active=ref<ToolId|null>(null), banner=ref(""), clock=ref("");
 const activeTool=computed(()=>tools.find(t=>t.id===active.value)??null);
 const grouped=computed(()=>groups.map(g=>({...g,tools:tools.filter(t=>t.cat===g.id)})).filter(g=>g.tools.length));
 function open(id:ToolId){active.value=id} function back(){active.value=null}
@@ -67,8 +66,7 @@ onMounted(async()=>{try{banner.value=await invoke<string>("banner")}catch{banner
 </script>
 
 <template>
-<SplashScreen v-if="showSplash" @done="showSplash=false"/>
-<div v-show="!showSplash" class="site">
+<div class="site">
   <div class="progress"></div>
   <header class="header">
     <nav class="nav">
