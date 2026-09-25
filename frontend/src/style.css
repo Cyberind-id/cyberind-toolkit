@@ -31,7 +31,8 @@ html, body, #app {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   text-rendering: geometricPrecision;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 body {
@@ -41,8 +42,8 @@ body {
     var(--bg);
 }
 
-/* subtle scanlines */
-body::before {
+/* visual overlays disabled */
+/* body::before {
   content: '';
   position: fixed;
   inset: 0;
@@ -57,9 +58,10 @@ body::before {
   z-index: 1000;
   mix-blend-mode: overlay;
 }
+*/
 
 /* flicker on vignette edges */
-body::after {
+/* body::after {
   content: '';
   position: fixed;
   inset: 0;
@@ -67,6 +69,7 @@ body::after {
   pointer-events: none;
   z-index: 999;
 }
+*/
 
 ::selection {
   background: var(--accent);
@@ -314,3 +317,9 @@ textarea.term-input:focus, input:focus, select:focus {
 }
 .bar { height: 10px; border-radius: 999px; }
 .bar-fill { border-radius: inherit; }
+
+
+.site, main, .toolview, .module, .form, .row { max-width:100%; min-width:0; }
+img,svg,video,canvas { max-width:100%; height:auto; }
+input,textarea,select,button { max-width:100%; }
+@media(max-width:640px){html,body,#app{width:100%;min-width:0;overflow-x:hidden;overflow-y:auto}main{width:100%;padding-left:14px;padding-right:14px}.toolview{width:100%}.row{width:100%}.row>*{min-width:0;max-width:100%}.mini.wide{flex-basis:100%;width:100%;min-width:0}.mini.wide input{width:100%}textarea.term-input{width:100%}.exec{max-width:100%;}}
