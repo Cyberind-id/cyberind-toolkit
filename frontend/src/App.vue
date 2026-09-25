@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { invoke } from "./lib/api";
 import PortScan from "./components/modules/PortScan.vue";
 import SubEnum from "./components/modules/SubEnum.vue";
@@ -60,9 +60,9 @@ const groups:{id: Cat;label:string;desc:string;mark:string}[]=[
 const active=ref<ToolId|null>(null), banner=ref(""), clock=ref("");
 const activeTool=computed(()=>tools.find(t=>t.id===active.value)??null);
 const grouped=computed(()=>groups.map(g=>({...g,tools:tools.filter(t=>t.cat===g.id)})).filter(g=>g.tools.length));
-function open(id:ToolId){active.value=id} function back(){active.value=null}
+function open(id:ToolId){ history.pushState({tool:id},"",`#${id}`); active.value=id }\nfunction syncFromHistory(){ const id=history.state?.tool as ToolId|undefined; active.value=id&&tools.some(t=>t.id===id)?id:null }\nfunction back(){ if(active.value!==null) history.back() else active.value=null }
 function tick(){clock.value=new Date().toTimeString().slice(0,8)}
-onMounted(async()=>{try{banner.value=await invoke<string>("banner")}catch{banner.value="CYBERIND TOOLKIT"} tick();setInterval(tick,1000)})
+let timer: ReturnType<typeof setInterval>\nonMounted(async()=>{try{banner.value=await invoke<string>("banner")}catch{banner.value="CYBERIND TOOLKIT"} tick(); timer=setInterval(tick,1000); syncFromHistory(); window.addEventListener("popstate",syncFromHistory)})\nonUnmounted(()=>{clearInterval(timer); window.removeEventListener("popstate",syncFromHistory)})
 </script>
 
 <template>
